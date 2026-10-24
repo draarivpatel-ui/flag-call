@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flag Call: A UIL Heat Safety Decision Game</title>
+  <meta name="description" content="Flag Call is a browser game that turns wet bulb globe temperature readings into heat safety flag calls across eight city heat snapshots.">
+  <meta name="theme-color" content="#10141c">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to the game</a>
+
+  <header class="site-head">
+    <div class="wrap">
+      <div class="wordmark">
+        <svg viewBox="0 0 40 40" aria-hidden="true" focusable="false">
+          <path d="M8 38 L8 4 L10 4 L10 38 Z" fill="#ffa24d"></path>
+          <path d="M12 5 L34 12 L12 19 Z" fill="#ff7a1a"></path>
+          <path d="M12 19 L30 25 L12 31 Z" fill="#ff6b6b"></path>
+          <circle cx="9" cy="4" r="3" fill="#f2ede3"></circle>
+        </svg>
+        <div>
+          <h1>Flag Call</h1>
+          <p class="tagline">The wet bulb globe temperature decision game for hot practice days</p>
+        </div>
+      </div>
+      <nav aria-label="Primary">
+        <div class="mode-switch" role="group" aria-label="Game mode">
+          <button type="button" id="mode-walk" aria-pressed="false" aria-label="Switch to the Day 1 walkthrough mode">Day 1 Walkthrough</button>
+          <button type="button" id="mode-free" aria-pressed="true" aria-label="Switch to free play mode">Free Play</button>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="wrap">
+      <section class="intro-card" aria-labelledby="intro-title">
+        <h2 id="intro-title">Read the heat. Make the call.</h2>
+        <p class="lede">One flag decides whether practice runs, shortens, or shuts down. Blend air
+          temperature, humidity, radiant heat, and wind into one wet bulb globe temperature reading,
+          then call the right flag for every block of a real activity schedule.</p>
+        <div class="cta-row">
+          <button type="button" id="start-walk" class="btn btn-primary" aria-label="Start the guided Day 1 walkthrough">Start the Day 1 Walkthrough</button>
+          <button type="button" id="start-free" class="btn" aria-label="Jump straight into free play with all eight cities">Go Straight to Free Play</button>
+        </div>
+      </section>
+
+      <div class="game-layout">
+        <div class="game-flow">
+
+          <section class="panel conditions-panel" aria-labelledby="conditions-title">
+            <h2 id="conditions-title">Conditions</h2>
+            <p class="panel-note">Pick a city snapshot or dial in your own weather. The readout updates as you move.</p>
+            <div class="preset-grid" id="preset-grid" role="group" aria-label="City heat snapshots"></div>
+            <fieldset class="input-grid">
+              <legend>Weather inputs</legend>
+              <div class="field">
+                <label for="temp-input">Air temperature <output id="temp-out" for="temp-input">101 F</output></label>
+                <p class="hint" id="temp-hint">Dry bulb air temperature in degrees Fahrenheit.</p>
+                <input type="range" id="temp-input" min="60" max="125" step="1" value="101"
+                  aria-describedby="temp-hint">
+              </div>
+              <div class="field">
+                <label for="humidity-input">Relative humidity <output id="humidity-out" for="humidity-input">65%</output></label>
+                <p class="hint" id="humidity-hint">Moisture in the air. High humidity stalls sweat evaporation.</p>
+                <input type="range" id="humidity-input" min="5" max="99" step="1" value="65"
+                  aria-describedby="humidity-hint">
+              </div>
+              <div class="field">
+                <label for="solar-input">Radiant heat <output id="solar-out" for="solar-input">950 W per square meter</output></label>
+                <p class="hint" id="solar-hint">Sunlight load on a black globe, from overcast to full sun.</p>
+                <input type="range" id="solar-input" min="0" max="1200" step="10" value="950"
+                  aria-describedby="solar-hint">
+              </div>
+              <div class="field">
+                <label for="wind-input">Wind <output id="wind-out" for="wind-input">6 mph</output></label>
+                <p class="hint" id="wind-hint">Moving air cools the globe and helps sweat do its job.</p>
+                <input type="range" id="wind-input" min="0" max="25" step="1" value="6"
+                  aria-describedby="wind-hint">
+              </div>
+            </fieldset>
+          </section>
+
+          <section class="panel readout-panel" aria-labelledby="readout-title">
+            <h2 id="readout-title">Heat Readout</h2>
+            <div class="readout-top">
+              <div aria-live="polite">
+                <div class="wbgt-value"><span id="wbgt-number">95.5</span> <span class="wbgt-unit">F WBGT</span></div>
+              </div>
+              <div class="tier-chip" id="tier-chip" data-tier="4">
+                <span class="dot" aria-hidden="true"></span>
+                <span id="tier-name">Danger</span>
+              </div>
+            </div>
+            <div class="readout-facts">
+              <span>Wet bulb <strong id="fact-wet">90.4 F</strong></span>
+              <span>Globe <strong id="fact-globe">110.7 F</strong></span>
+              <span>Air <strong id="fact-dry">101.0 F</strong></span>
+            </div>
+            <p class="panel-note">The reading blends 70 percent wet bulb, 20 percent globe, and 10 percent air temperature.</p>
+            <ol class="flag-scale" id="flag-scale" aria-label="The five flag bands and their ranges"></ol>
+          </section>
+
+          <section class="panel schedule-panel" aria-labelledby="schedule-title">
+            <h2 id="schedule-title">Practice Card</h2>
+            <div class="readout-top" style="margin-top: 8px;">
+              <div class="field" style="min-width: 240px;">
+                <label for="template-select">Activity schedule</label>
+                <select id="template-select" class="btn"></select>
+              </div>
+              <button type="button" id="reset-day" class="btn" aria-label="Clear every call and restart this day">Reset Day</button>
+            </div>
+            <ol class="schedule-list" id="schedule-list"></ol>
+          </section>
+
+          <section class="panel judge-panel" aria-labelledby="judge-title">
+            <h2 id="judge-title">Judge Shortcuts</h2>
+            <p class="panel-note">Two one tap views for coaches and judges: what a bad plan looks like, and what the safe call is.</p>
+            <div class="judge-row">
+              <button type="button" id="btn-unsafe" class="judge-btn judge-warn">
+                <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                  <path d="M10 2 L19 17 L1 17 Z" fill="none" stroke="#ff6b6b" stroke-width="1.6" stroke-linejoin="round"></path>
+                  <path d="M10 8 L10 12" stroke="#ff6b6b" stroke-width="1.8" stroke-linecap="round"></path>
+                  <circle cx="10" cy="14.6" r="1" fill="#ff6b6b"></circle>
+                </svg>
+                See an Unsafe Plan
+              </button>
+              <button type="button" id="btn-safe" class="judge-btn judge-safe">
+                <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                  <path d="M10 2 L16 5 L16 10 C16 14 13.4 16.6 10 18 C6.6 16.6 4 14 4 10 L4 5 Z" fill="none" stroke="#46d68c" stroke-width="1.6" stroke-linejoin="round"></path>
+                  <path d="M7 10 L9.2 12.4 L13.4 7.6" fill="none" stroke="#46d68c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+                Show the Safe Call
+              </button>
+            </div>
+          </section>
+
+          <section class="panel report-panel" aria-labelledby="report-title">
+            <h2 id="report-title">Day Report</h2>
+            <div id="report-body" aria-live="polite"></div>
+          </section>
+
+        </div>
+
+        <div class="coach-col">
+          <aside class="coach" aria-labelledby="coach-title">
+            <h2 id="coach-title">Day 1 Walkthrough</h2>
+            <p class="coach-step" id="coach-step">Step 1 of 9</p>
+            <nav class="coach-dots" id="coach-dots" aria-label="Walkthrough steps"></nav>
+            <h3 id="coach-step-title" tabindex="-1">Welcome To Flag Call</h3>
+            <p id="coach-step-body">You are the official holding the heat flag.</p>
+            <div class="coach-nav">
+              <button type="button" id="coach-back" class="btn">Back</button>
+              <button type="button" id="coach-next" class="btn btn-primary">Next</button>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-foot">
+    <div class="wrap">
+      <p><strong>Honest testing note.</strong> Playtesting for this game was performed entirely by
+        automated bots running 592,704 simulated schedule combinations. No human subjects took part.
+        The full log lives in NOTES.md in the repository.</p>
+      <p>City presets are representative heat wave snapshots modeled in the spirit of NOAA climate
+        extremes, not dated station records. This game is an educational tool. It does not replace a
+        calibrated WBGT instrument, your league's current heat policy, or the judgment of certified
+        medical staff.</p>
+      <p>Built by Aariv Patel. Released under the MIT License.</p>
+    </div>
+  </footer>
+
+  <div class="run-bar" id="run-bar" role="region" aria-label="Run status bar">
+    <span class="run-chip"><span class="dot" id="run-dot" aria-hidden="true"></span><span id="run-wbgt">95.5 F</span></span>
+    <span class="run-chip" id="run-tier">Danger</span>
+    <span class="run-score" id="run-score">0 pts</span>
+    <button type="button" id="run-unsafe" class="judge-btn judge-warn" aria-label="See an unsafe plan for the current conditions">Unsafe Plan</button>
+    <button type="button" id="run-safe" class="judge-btn judge-safe" aria-label="Show the safe call for the current conditions">Safe Call</button>
+  </div>
+
+  <dialog id="judge-dialog" aria-labelledby="judge-dialog-title">
+    <h2 id="judge-dialog-title">Judge View</h2>
+    <div id="judge-dialog-body"></div>
+    <form method="dialog">
+      <button type="submit" class="btn" id="judge-close">Close</button>
+    </form>
+  </dialog>
+
+  <script src="js/engine.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    var E = FlagCallEngine;
+    var $ = function (id) { return document.getElementById(id); };
+    var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    var state = {
+      mode: 'free',
+      presetIdx: 0,
+      templateIdx: 0,
+      inputs: { tempF: 101, humidityPct: 65, solarWm2: 950, windMph: 6 },
+      calls: {},
+      step: 0,
+      coached: false
+    };
+
+    function currentTemplate() { return E.SCHEDULE_TEMPLATES[state.templateIdx]; }
+    function currentBase() { return state.inputs; }
+    function currentRecs() { return E.recommendedFlagsFor(currentBase(), currentTemplate()); }
+
+    function clearSpotlight() {
+      var marked = document.querySelectorAll('.spotlight');
+      for (var i = 0; i < marked.length; i += 1) { marked[i].classList.remove('spotlight'); }
+    }
+
+    function spotlight(selector) {
+      clearSpotlight();
+      var el = document.querySelector(selector);
+      if (el) {
+        el.classList.add('spotlight');
+        el.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'center' });
+      }
+    }
+
+    function syncSliders() {
+      var map = [['temp-input', 'temp-out', 'tempF', ' F'], ['humidity-input', 'humidity-out', 'humidityPct', '%'],
+        ['solar-input', 'solar-out', 'solarWm2', ' W per square meter'], ['wind-input', 'wind-out', 'windMph', ' mph']];
+      map.forEach(function (row) {
+        $(row[0]).value = String(state.inputs[row[2]]);
+        $(row[1]).textContent = String(state.inputs[row[2]]) + row[3];
+      });
+    }
+
+    function markPresets() {
+      var buttons = document.querySelectorAll('.preset');
+      buttons.forEach(function (btn, i) {
+        btn.setAttribute('aria-pressed', i === state.presetIdx ? 'true' : 'false');
+      });
+    }
+
+    function renderPresets() {
+      var grid = $('preset-grid');
+      grid.innerHTML = '';
+      E.PRESETS.forEach(function (p, i) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'preset';
+        btn.setAttribute('aria-pressed', i === state.presetIdx ? 'true' : 'false');
+        btn.setAttribute('aria-label', 'Load the ' + p.city + ' heat snapshot at ' + p.tempF + ' degrees Fahrenheit');
+        btn.innerHTML = '<span class="city">' + p.city + ', ' + p.state + '</span>' +
+          '<span class="temp">' + p.tempF + ' F</span>' +
+          '<span class="blurb">' + p.blurb + '</span>';
+        btn.addEventListener('click', function () {
+          state.presetIdx = i;
+          state.inputs = { tempF: p.tempF, humidityPct: p.humidityPct, solarWm2: p.solarWm2, windMph: p.windMph };
+          syncSliders();
+          markPresets();
+          renderAll();
+        });
+        grid.appendChild(btn);
+      });
+    }
+
+    function renderFlagScale() {
+      var ol = $('flag-scale');
+      ol.innerHTML = '';
+      var bands = [
+        ['Normal', 'under 82 F', 'dot-normal'],
+        ['Watch', '82 to 85 F', 'dot-watch'],
+        ['Caution', '85 to 88 F', 'dot-caution'],
+        ['Warning', '88 to 90 F', 'dot-warning'],
+        ['Danger', '90 F and up', 'dot-danger']
+      ];
+      bands.forEach(function (b) {
+        var li = document.createElement('li');
+        li.innerHTML = '<span class="dot ' + b[2] + '" aria-hidden="true"></span><span>' + b[0] +
+          '</span><span class="band">' + b[1] + '</span>';
+        ol.appendChild(li);
+      });
+    }
+
+    function animateNumber(el, target) {
+      var start = parseFloat(el.textContent);
+      if (reducedMotion || isNaN(start)) { el.textContent = target.toFixed(1); return; }
+      var t0 = performance.now();
+      var dur = 260;
+      function frame(t) {
+        var k = Math.min(1, (t - t0) / dur);
+        el.textContent = (start + (target - start) * k).toFixed(1);
+        if (k < 1) { requestAnimationFrame(frame); }
+      }
+      requestAnimationFrame(frame);
+    }
+
+    function renderReadout() {
+      var r = E.wbgtFromInputs(currentBase());
+      var tier = E.tierIndexFromF(r.wbgtF);
+      var info = E.TIERS[tier];
+      animateNumber($('wbgt-number'), r.wbgtF);
+      var chip = $('tier-chip');
+      chip.className = 'tier-chip ' + info.chipClass;
+      chip.dataset.tier = String(tier);
+      $('tier-name').textContent = info.name;
+      $('fact-wet').textContent = E.formatF(r.wetBulbF);
+      $('fact-globe').textContent = E.formatF(r.globeF);
+      $('fact-dry').textContent = E.formatF(r.dryF);
+      $('run-wbgt').textContent = E.formatF(r.wbgtF);
+      var runTier = $('run-tier');
+      runTier.textContent = info.name;
+      $('run-dot').className = 'dot dot-' + info.key;
+    }
+
+    function qualityMark(rec) {
+      var chosen = state.calls[rec.index];
+      if (chosen === undefined) { return ''; }
+      var s = E.scoreCall(chosen, rec.tier);
+      var cls = s.unsafe ? 'bad' : (s.quality === 'exact' ? 'good' : '');
+      var word = { exact: 'Exact', cautious: 'Cautious', overcautious: 'Overcautious', undercall: 'Undercall', critical: 'Critical' }[s.quality];
+      return '<span class="call-mark ' + cls + '">' + word + ' ' + s.points + '</span>';
+    }
+
+    function renderSchedule() {
+      var list = $('schedule-list');
+      list.innerHTML = '';
+      currentRecs().forEach(function (rec) {
+        var li = document.createElement('li');
+        li.className = 'block-card';
+        var field = '<fieldset><legend>Call the flag for ' + rec.time + ', ' + rec.label + '</legend><div class="flag-row">';
+        E.TIERS.forEach(function (t, ti) {
+          var checked = state.calls[rec.index] === ti ? ' checked' : '';
+          field += '<label class="flag-choice" for="call-' + rec.index + '-' + ti + '">' +
+            '<input type="radio" id="call-' + rec.index + '-' + ti + '" name="call-' + rec.index + '" value="' + ti + '"' + checked + '>' +
+            '<span class="dot dot-' + t.key + '" aria-hidden="true"></span>' + t.name + '</label>';
+        });
+        field += '</div></fieldset>';
+        var intensity = ['Light', 'Moderate', 'Intense'][rec.intensity - 1];
+        li.innerHTML = '<div class="block-head"><span class="block-time">' + rec.time + '</span>' +
+          '<span class="block-name">' + rec.label + '</span>' +
+          '<span class="block-load">' + intensity + ', reads ' + E.formatF(rec.wbgtF) + ' WBGT</span></div>' +
+          field + qualityMark(rec);
+        list.appendChild(li);
+      });
+    }
+
+    function currentScore() {
+      var recsNow = currentRecs();
+      var total = 0;
+      var made = 0;
+      recsNow.forEach(function (rec) {
+        var chosen = state.calls[rec.index];
+        if (chosen !== undefined) { total += E.scoreCall(chosen, rec.tier).points; made += 1; }
+      });
+      return { total: total, made: made, count: recsNow.length };
+    }
+
+    function renderReport() {
+      var body = $('report-body');
+      var recsNow = currentRecs();
+      var made = recsNow.filter(function (r) { return state.calls[r.index] !== undefined; });
+      if (made.length < recsNow.length) {
+        var partial = currentScore();
+        body.innerHTML = '<p class="report-empty">' + partial.made + ' of ' + partial.count +
+          ' blocks called, worth ' + partial.total + ' points so far. Call every block to finish the day and unlock the report card.</p>';
+        $('run-score').textContent = partial.total + ' pts';
+        return;
+      }
+      var calls = recsNow.map(function (r) {
+        return { chosen: state.calls[r.index], recommended: r.tier };
+      });
+      var report = E.dayReport(calls);
+      var rows = recsNow.map(function (r) {
+        var s = E.scoreCall(state.calls[r.index], r.tier);
+        return '<tr><td>' + r.time + ' ' + r.label + '</td><td>' + E.TIERS[state.calls[r.index]].name +
+          '</td><td>' + E.TIERS[r.tier].name + '</td><td class="num">' + s.points + '</td></tr>';
+      });
+      var coachedNote = state.coached ? ' This was a coached day: you opened the safe call view.' : '';
+      body.innerHTML = '<table class="report-table"><caption>Every block, your call against the recommendation</caption>' +
+        '<thead><tr><th scope="col">Block</th><th scope="col">Your call</th><th scope="col">Recommended</th><th scope="col">Points</th></tr></thead>' +
+        '<tbody>' + rows.join('') + '</tbody></table>' +
+        '<div class="report-total"><span class="grade" role="img" aria-label="Grade ' + report.grade + '">' + report.grade + '</span>' +
+        '<div><p class="report-line"><strong>' + report.total + ' of ' + report.max + ' points</strong> including a streak bonus of ' + report.bonus + '.' + coachedNote + '</p>' +
+        '<p class="report-line">' + report.unsafeCount + ' unsafe call' + (report.unsafeCount === 1 ? '' : 's') + ' this day.</p></div></div>';
+      $('run-score').textContent = report.total + ' pts';
+    }
+
+    function renderAll() {
+      renderReadout();
+      renderSchedule();
+      renderReport();
+    }
+
+    function openDialog(kind) {
+      var recsNow = currentRecs();
+      var bodyEl = $('judge-dialog-body');
+      if (kind === 'unsafe') {
+        var plan = E.unsafePlanFor(recsNow);
+        var items = recsNow.map(function (rec, i) {
+          var pick = plan.picks[i];
+          return '<li><span class="plan-row"><span class="plan-flag">' + pick.time + ' ' + pick.label + ': ' +
+            E.TIERS[pick.chosen].name + ' flag</span><span class="call-mark bad">recommended ' +
+            E.TIERS[rec.tier].name + '</span></span></li>';
+        });
+        bodyEl.innerHTML = '<p>This plan ignores the heat picture for a day reading <strong>' +
+          E.formatF(E.wbgtFromInputs(currentBase()).wbgtF) + ' WBGT</strong>.</p>' +
+          '<ul class="dialog-list">' + items.join('') + '</ul>' +
+          '<p><strong>What goes wrong:</strong></p><ul class="dialog-list">' +
+          plan.violations.map(function (v) { return '<li>' + v + '</li>'; }).join('') + '</ul>';
+      } else {
+        state.coached = true;
+        var safe = E.safeCallFor(recsNow);
+        var rows = safe.map(function (call) {
+          return '<li><span class="plan-row"><span class="plan-flag">' + call.time + ' ' + call.label + ': ' +
+            E.TIERS[call.tier].name + ' flag at ' + E.formatF(call.wbgtF) + '</span></span>' +
+            '<span class="panel-note">' + call.reason + '</span></li>';
+        });
+        bodyEl.innerHTML = '<p>The recommended flags for every block on this card:</p>' +
+          '<ul class="dialog-list">' + rows.join('') + '</ul>';
+      }
+      $('judge-dialog-title').textContent = kind === 'unsafe' ? 'See an Unsafe Plan' : 'Show the Safe Call';
+      $('judge-dialog').showModal();
+      renderReport();
+    }
+
+    function applyStep(announce) {
+      var steps = E.WALKTHROUGH_STEPS;
+      var step = steps[state.step];
+      $('coach-step').textContent = 'Step ' + (state.step + 1) + ' of ' + steps.length;
+      $('coach-step-title').textContent = step.title;
+      $('coach-step-body').textContent = step.body;
+      $('coach-back').disabled = state.step === 0;
+      $('coach-next').textContent = state.step === steps.length - 1 ? 'Enter Free Play' : 'Next';
+      var dots = $('coach-dots');
+      dots.innerHTML = '';
+      steps.forEach(function (s, i) {
+        var dot = document.createElement('button');
+        dot.type = 'button';
+        dot.setAttribute('aria-label', 'Go to walkthrough step ' + (i + 1) + ' of ' + steps.length);
+        dot.setAttribute('aria-current', i === state.step ? 'true' : 'false');
+        dot.addEventListener('click', function () { state.step = i; applyStep(true); });
+        dots.appendChild(dot);
+      });
+      spotlight(step.focus);
+      if (announce) { $('coach-step-title').focus(); }
+    }
+
+    function setMode(mode) {
+      state.mode = mode;
+      $('mode-walk').setAttribute('aria-pressed', mode === 'walk' ? 'true' : 'false');
+      $('mode-free').setAttribute('aria-pressed', mode === 'free' ? 'true' : 'false');
+      if (mode === 'walk') {
+        state.presetIdx = 0;
+        state.templateIdx = 0;
+        state.inputs = { tempF: 101, humidityPct: 65, solarWm2: 950, windMph: 6 };
+        state.calls = {};
+        state.coached = false;
+        state.step = 0;
+        syncSliders();
+        markPresets();
+        renderAll();
+        applyStep(false);
+      } else {
+        clearSpotlight();
+      }
+    }
+
+    function init() {
+      var select = $('template-select');
+      E.SCHEDULE_TEMPLATES.forEach(function (t, i) {
+        var opt = document.createElement('option');
+        opt.value = String(i);
+        opt.textContent = t.name;
+        select.appendChild(opt);
+      });
+      select.addEventListener('change', function () {
+        state.templateIdx = Number(select.value);
+        state.calls = {};
+        renderAll();
+      });
+
+      [['temp-input', 'tempF', 'temp-out', ' F'], ['humidity-input', 'humidityPct', 'humidity-out', '%'],
+        ['solar-input', 'solarWm2', 'solar-out', ' W per square meter'], ['wind-input', 'windMph', 'wind-out', ' mph']]
+        .forEach(function (row) {
+          $(row[0]).addEventListener('input', function () {
+            state.inputs[row[1]] = Number($(row[0]).value);
+            $(row[2]).textContent = $(row[0]).value + row[3];
+            state.presetIdx = -1;
+            markPresets();
+            renderAll();
+          });
+        });
+
+      $('schedule-list').addEventListener('change', function (ev) {
+        var input = ev.target;
+        if (input && input.name && input.name.indexOf('call-') === 0) {
+          var blockIndex = Number(input.name.slice(5));
+          state.calls[blockIndex] = Number(input.value);
+          renderSchedule();
+          renderReport();
+          var again = document.querySelector('input[name="' + input.name + '"]:checked');
+          if (again) { again.focus(); }
+        }
+      });
+
+      $('reset-day').addEventListener('click', function () {
+        state.calls = {};
+        state.coached = false;
+        renderSchedule();
+        renderReport();
+      });
+
+      $('btn-unsafe').addEventListener('click', function () { openDialog('unsafe'); });
+      $('btn-safe').addEventListener('click', function () { openDialog('safe'); });
+      $('run-unsafe').addEventListener('click', function () { openDialog('unsafe'); });
+      $('run-safe').addEventListener('click', function () { openDialog('safe'); });
+
+      $('mode-walk').addEventListener('click', function () { setMode('walk'); });
+      $('mode-free').addEventListener('click', function () { setMode('free'); });
+      $('start-walk').addEventListener('click', function () { setMode('walk'); });
+      $('start-free').addEventListener('click', function () { setMode('free'); });
+
+      $('coach-back').addEventListener('click', function () {
+        if (state.step > 0) { state.step -= 1; applyStep(true); }
+      });
+      $('coach-next').addEventListener('click', function () {
+        if (state.step < E.WALKTHROUGH_STEPS.length - 1) {
+          state.step += 1;
+          applyStep(true);
+        } else {
+          setMode('free');
+        }
+      });
+
+      renderPresets();
+      renderFlagScale();
+      syncSliders();
+      markPresets();
+      renderAll();
+      applyStep(false);
+    }
+
+    init();
+  })();
+  </script>
+</body>
+</html>
