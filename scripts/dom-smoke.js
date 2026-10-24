@@ -146,3 +146,62 @@ byId('mode-free').dispatch('click', {});
 ok(byId('mode-free').getAttribute('aria-pressed') === 'true', 'the free play mode switch toggles aria pressed');
 
 console.log('dom smoke: ' + checks + ' checks passed across presets, sliders, calls, report, dialogs, and walkthrough');
+
+/* ---------- second pass: the same init under normal motion ----------
+ * The first pass runs with prefers-reduced-motion matching, which is the
+ * reduced path. A normal load instead animates the readout through
+ * requestAnimationFrame. Run the init again with motion allowed and prove the
+ * animated path initializes and settles on real numbers too.
+ */
+(function animatedPass() {
+  const registry2 = {};
+  ['main', 'preset-grid', 'temp-input', 'temp-out', 'humidity-input', 'humidity-out',
+    'solar-input', 'solar-out', 'wind-input', 'wind-out', 'wbgt-number', 'tier-chip', 'tier-name',
+    'fact-wet', 'fact-globe', 'fact-dry', 'run-wbgt', 'run-tier', 'run-dot', 'run-score',
+    'run-unsafe', 'run-safe', 'schedule-list', 'template-select', 'reset-day', 'report-body',
+    'judge-dialog', 'judge-dialog-title', 'judge-dialog-body', 'btn-unsafe', 'btn-safe',
+    'mode-walk', 'mode-free', 'start-walk', 'start-free', 'coach-step', 'coach-step-title',
+    'coach-step-body', 'coach-back', 'coach-next', 'coach-dots', 'flag-scale', 'judge-close']
+    .forEach(function (id) { registry2[id] = makeEl('div'); });
+
+  const document2 = {
+    getElementById: function (id) {
+      if (!registry2[id]) { registry2[id] = makeEl('div'); }
+      return registry2[id];
+    },
+    createElement: function (tag) { return makeEl(tag); },
+    querySelector: function () { return null; },
+    querySelectorAll: function () { return []; }
+  };
+
+  let rafQueue = [];
+  global.requestAnimationFrame = function (cb) { rafQueue.push(cb); return rafQueue.length; };
+  function pump(frames) {
+    let now = 0;
+    for (let i = 0; i < frames && rafQueue.length; i++) {
+      const batch = rafQueue.splice(0);
+      now += 16.7;
+      batch.forEach(function (cb) { cb(now); });
+    }
+    rafQueue.length = 0;
+  }
+
+  const animatedChecks = [];
+  const ok2 = function (cond, msg) { animatedChecks.push(assert.ok(cond, msg)); };
+
+  const run2 = new Function('window', 'document', 'FlagCallEngine', scripts[0]);
+  run2({ matchMedia: function () { return { matches: false }; } }, document2, engine);
+  ok2(registry2['preset-grid'].children.length === 8, 'the animated init also renders eight presets');
+  registry2['preset-grid'].children[1].dispatch('click', {});
+  pump(40);
+  ok2(isFinite(parseFloat(registry2['wbgt-number'].textContent)), 'the animated readout settles on a real number, got ' + registry2['wbgt-number'].textContent);
+  ok2(/90\.8/.test(registry2['wbgt-number'].textContent), 'the tweened readout lands on the Phoenix value, got ' + registry2['wbgt-number'].textContent);
+  ok2(rafQueue.length === 0, 'the tween stopped scheduling frames once it settled');
+  ok2(registry2['schedule-list'].children.length === 4, 'the animated init renders the default practice card');
+  ok2(registry2['coach-dots'].children.length === 9, 'the animated init renders the nine walkthrough dots');
+  registry2['run-safe'].dispatch('click', {});
+  ok2(registry2['judge-dialog'].modalOpen === true, 'the animated init still opens the safe call dialog');
+  ok2(registry2['judge-dialog-body'].innerHTML.indexOf('recommended flags') !== -1, 'the safe call content renders on the animated path');
+
+  console.log('dom smoke: ' + animatedChecks.length + ' more checks passed on the normal motion path (animated readout)');
+})();

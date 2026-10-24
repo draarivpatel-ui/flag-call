@@ -462,6 +462,7 @@ input[type="range"] {
 .coach-dots { display: flex; gap: 6px; margin: 10px 0; flex-wrap: wrap; }
 
 .coach-dots button {
+  position: relative;
   width: 14px;
   height: 14px;
   border-radius: 50%;
@@ -469,6 +470,14 @@ input[type="range"] {
   background: var(--panel-2);
   cursor: pointer;
   padding: 0;
+}
+
+/* widen the touch target without changing the drawn dot */
+.coach-dots button::before {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
 }
 
 .coach-dots button[aria-current="true"] { background: var(--accent); border-color: var(--accent); }
@@ -525,6 +534,7 @@ dialog::backdrop { background: rgba(5, 7, 11, 0.7); }
   border-top: 1px solid var(--line);
   padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
   align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
 }
 

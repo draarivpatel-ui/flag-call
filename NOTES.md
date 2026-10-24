@@ -18,8 +18,8 @@ this build; the repo goes public tomorrow per the pipeline plan.
   practice card templates, call scoring with streak bonus and grades, the unsafe plan and safe call
   generators, and the Day 1 walkthrough copy. Node importable for tests.
 - `tests/`: three suites, detailed below.
-- `scripts/dom-smoke.js`: a Node side wiring check with a minimal DOM stub (24 checks). Not part of
-  the default suite.
+- `scripts/dom-smoke.js`: a Node side wiring check with a minimal DOM stub (32 checks across a
+  reduced motion pass and a normal motion pass). Not part of the default suite.
 - `README.md` and `LICENSE` (MIT).
 
 ## Spec compliance
@@ -50,8 +50,8 @@ budget. No network access anywhere.
   from the parsed CSS tokens and require 4.5 to 1 or better.
 - `tests/bot-sweep.test.js`: 1 test with 12 assertions over the sweep run.
 
-That is 192 content assertions and 206 total assertion calls. `scripts/dom-smoke.js` adds 24 wiring
-checks outside the default suite.
+That is 192 content assertions and 206 total assertion calls. `scripts/dom-smoke.js` adds 32 wiring
+checks outside the default suite, 24 on the reduced motion pass and 8 on the normal motion pass.
 
 ## The bot sweep
 
@@ -116,6 +116,30 @@ claiming otherwise.
 ## Verification log
 
 - `npm test`: 20 of 20 passing, 0 failing, duration about 242 ms.
-- `node scripts/dom-smoke.js`: 24 of 24 checks passing.
+- `node scripts/dom-smoke.js`: 24 checks on the reduced motion pass plus 8 on the normal motion
+  path, all passing.
 - Honesty and privacy scans: no em or en dashes anywhere, no emoji, no private email or address
   strings, no school, city, or club claims about the author.
+
+## Refinement Pass 2026-10-24
+
+- Wiring proof. `scripts/dom-smoke.js` gains a second pass that runs the same init under normal
+  motion with a pumped requestAnimationFrame clock, so the animated readout tween, the preset
+  switch, and the dialogs are exercised on the path real visitors take. 8 more checks pass on top
+  of the existing 24, and the HTML has no duplicate ids.
+- Fixed. The page shipped no Open Graph tags; og:title, og:description, and og:type are now in the head.
+- Fixed. No favicon existed. A code drawn inline SVG of the flag wordmark on the page background
+  now ships as the icon, percent encoded so the markup still contains no network URL.
+- Fixed. The two intro call to action buttons carried aria labels that did not contain their
+  visible text, a label in name failure for voice control users. The visible text already names
+  each button, so the extra labels came off.
+- Fixed. The pinned run bar could crush its buttons at very narrow widths; it now wraps.
+- Fixed. The walkthrough dot buttons drew at 14 px, under the 24 px pointer target floor; an
+  invisible pseudo element widens each hit area with no change to the drawn dots.
+- Accessibility and contrast rechecked from the tokens. Every text pair is at or above 4.5, the
+  lowest being the warning color on panel 2 at 5.48. Labels, live regions, and the 44 px touch
+  floor still hold, and the accessibility suite keeps its exact 34 checkpoint count.
+- Risk left as is. The selected and keyboard focus styling on the flag choices uses the :has
+  selector. Browsers without it still let the radio group work; the chosen flag just does not
+  gain the accent ring.
+- Tests: 20 before the pass, 20 after, all passing. Smoke: 24 checks plus 8 on the normal motion path.
