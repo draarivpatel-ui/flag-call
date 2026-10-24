@@ -368,7 +368,7 @@
       if (made.length < recsNow.length) {
         var partial = currentScore();
         body.innerHTML = '<p class="report-empty">' + partial.made + ' of ' + partial.count +
-          ' blocks called, worth ' + partial.total + ' points so far. Call every block to finish the day and unlock the report card.</p>';
+          ' blocks called, worth ' + partial.total + ' points so far. Call every block to finish the day and see your report card.</p>';
         $('run-score').textContent = partial.total + ' pts';
         return;
       }
