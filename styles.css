@@ -23,7 +23,7 @@
 
 * { box-sizing: border-box; }
 
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; overflow-x: clip; }
 
 body {
   margin: 0;
@@ -37,6 +37,7 @@ body {
   font-size: 16px;
   line-height: 1.55;
   min-height: 100vh;
+  overflow-x: clip;
 }
 
 body::before {

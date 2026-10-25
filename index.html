@@ -9,11 +9,13 @@
   <meta property="og:title" content="Flag Call: A UIL Heat Safety Decision Game">
   <meta property="og:description" content="Flag Call is a browser game that turns wet bulb globe temperature readings into heat safety flag calls across eight city heat snapshots, with a guided Day 1 walkthrough and free play.">
   <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2310141c'/%3E%3Cpath d='M18 56 L18 8 L21 8 L21 56 Z' fill='%23ffa24d'/%3E%3Cpath d='M24 10 L52 19 L24 28 Z' fill='%23ff7a1a'/%3E%3Cpath d='M24 28 L48 35 L24 44 Z' fill='%23ff6b6b'/%3E%3Ccircle cx='19.5' cy='7' r='3.5' fill='%23f2ede3'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to the game</a>
+  <noscript><p role="status" style="margin:0;padding:12px 20px;background:#ffa24d;color:#10141c;font-weight:700;text-align:center;">Flag Call calculates wet bulb globe temperature and scores activity schedules in JavaScript. Turn on JavaScript to play.</p></noscript>
 
   <header class="site-head">
     <div class="wrap">
@@ -453,67 +455,60 @@
 
     function setMode(mode) {
       state.mode = mode;
+      document.body.dataset.mode = mode;
       $('mode-walk').setAttribute('aria-pressed', mode === 'walk' ? 'true' : 'false');
       $('mode-free').setAttribute('aria-pressed', mode === 'free' ? 'true' : 'false');
       if (mode === 'walk') {
-        state.presetIdx = 0;
-        state.templateIdx = 0;
-        state.inputs = { tempF: 101, humidityPct: 65, solarWm2: 950, windMph: 6 };
-        state.calls = {};
-        state.coached = false;
         state.step = 0;
-        syncSliders();
-        markPresets();
-        renderAll();
-        applyStep(false);
+        applyStep(true);
       } else {
         clearSpotlight();
       }
     }
 
     function init() {
-      var select = $('template-select');
-      E.SCHEDULE_TEMPLATES.forEach(function (t, i) {
+      var sel = $('template-select');
+      E.SCHEDULE_TEMPLATES.forEach(function (tpl, i) {
         var opt = document.createElement('option');
         opt.value = String(i);
-        opt.textContent = t.name;
-        select.appendChild(opt);
+        opt.textContent = tpl.name;
+        sel.appendChild(opt);
       });
-      select.addEventListener('change', function () {
-        state.templateIdx = Number(select.value);
+
+      sel.addEventListener('change', function () {
+        state.templateIdx = parseInt(sel.value, 10) || 0;
         state.calls = {};
+        state.coached = false;
         renderAll();
-      });
-
-      [['temp-input', 'tempF', 'temp-out', ' F'], ['humidity-input', 'humidityPct', 'humidity-out', '%'],
-        ['solar-input', 'solarWm2', 'solar-out', ' W per square meter'], ['wind-input', 'windMph', 'wind-out', ' mph']]
-        .forEach(function (row) {
-          $(row[0]).addEventListener('input', function () {
-            state.inputs[row[1]] = Number($(row[0]).value);
-            $(row[2]).textContent = $(row[0]).value + row[3];
-            state.presetIdx = -1;
-            markPresets();
-            renderAll();
-          });
-        });
-
-      $('schedule-list').addEventListener('change', function (ev) {
-        var input = ev.target;
-        if (input && input.name && input.name.indexOf('call-') === 0) {
-          var blockIndex = Number(input.name.slice(5));
-          state.calls[blockIndex] = Number(input.value);
-          renderSchedule();
-          renderReport();
-          var again = document.querySelector('input[name="' + input.name + '"]:checked');
-          if (again) { again.focus(); }
-        }
       });
 
       $('reset-day').addEventListener('click', function () {
         state.calls = {};
         state.coached = false;
-        renderSchedule();
-        renderReport();
+        renderAll();
+      });
+
+      [['temp-input', 'temp-out', 'tempF', ' F'],
+        ['humidity-input', 'humidity-out', 'humidityPct', '%'],
+        ['solar-input', 'solar-out', 'solarWm2', ' W per square meter'],
+        ['wind-input', 'wind-out', 'windMph', ' mph']].forEach(function (row) {
+        $(row[0]).addEventListener('input', function (ev) {
+          state.presetIdx = -1;
+          state.inputs[row[2]] = Number(ev.target.value);
+          $(row[1]).textContent = String(state.inputs[row[2]]) + row[3];
+          markPresets();
+          renderAll();
+        });
+      });
+
+      $('schedule-list').addEventListener('change', function (ev) {
+        var t = ev.target;
+        if (t && t.name && t.name.indexOf('call-') === 0) {
+          var idx = parseInt(t.name.slice(5), 10);
+          state.calls[idx] = parseInt(t.value, 10);
+          renderSchedule();
+          renderReport();
+        }
       });
 
       $('btn-unsafe').addEventListener('click', function () { openDialog('unsafe'); });
@@ -524,7 +519,10 @@
       $('mode-walk').addEventListener('click', function () { setMode('walk'); });
       $('mode-free').addEventListener('click', function () { setMode('free'); });
       $('start-walk').addEventListener('click', function () { setMode('walk'); });
-      $('start-free').addEventListener('click', function () { setMode('free'); });
+      $('start-free').addEventListener('click', function () {
+        setMode('free');
+        $('conditions-title').scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth' });
+      });
 
       $('coach-back').addEventListener('click', function () {
         if (state.step > 0) { state.step -= 1; applyStep(true); }
