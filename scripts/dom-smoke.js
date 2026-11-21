@@ -64,6 +64,7 @@ const staticIds = ['main', 'preset-grid', 'temp-input', 'temp-out', 'humidity-in
 staticIds.forEach(function (id) { registry[id] = makeEl('div'); });
 
 const documentStub = {
+  body: makeEl('body'),
   getElementById: function (id) {
     if (!registry[id]) { registry[id] = makeEl('div'); }
     return registry[id];
@@ -114,9 +115,11 @@ ok(byId('schedule-list').children.length === 2, 'the soccer doubleheader card ha
 for (let block = 0; block < 2; block += 1) {
   const input = makeEl('input');
   input.name = 'call-' + block;
+  input.id = 'call-' + block + '-0';
   input.value = '0';
   byId('schedule-list').dispatch('change', { target: input });
 }
+ok(byId('call-1-0').focused === true, 'focus returns to the rebuilt flag control after each call');
 ok(byId('report-body').innerHTML.indexOf('<table') !== -1, 'calling every block renders the report table');
 ok(byId('report-body').innerHTML.indexOf('Grade') !== -1, 'the report carries a labelled grade');
 
@@ -165,6 +168,7 @@ console.log('dom smoke: ' + checks + ' checks passed across presets, sliders, ca
     .forEach(function (id) { registry2[id] = makeEl('div'); });
 
   const document2 = {
+    body: makeEl('body'),
     getElementById: function (id) {
       if (!registry2[id]) { registry2[id] = makeEl('div'); }
       return registry2[id];

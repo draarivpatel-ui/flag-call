@@ -24,9 +24,9 @@ function oracleWbgt(tempF, rhPct, solarWm2, windMph) {
   const tC = (tempF - 32) * 5 / 9;
   const t = Math.max(-20, Math.min(55, tC));
   const r = Math.max(5, Math.min(99, rhPct));
-  const tw = t * Math.atan(0.151977 * Math.sqrt(r + 8.313659)) +
+  const tw = Math.min(t * Math.atan(0.151977 * Math.sqrt(r + 8.313659)) +
     Math.atan(t + r) - Math.atan(r - 1.676331) +
-    0.00391838 * Math.pow(r, 1.5) * Math.atan(0.023101 * r) - 4.686035;
+    0.00391838 * Math.pow(r, 1.5) * Math.atan(0.023101 * r) - 4.686035, t);
   const solar = Math.max(0, Math.min(1200, solarWm2));
   const windMs = Math.max(0, windMph) * 0.44704;
   const rise = Math.min(16, 14 * (solar / 1200) * (1.6 / (0.6 + windMs)));
@@ -36,10 +36,11 @@ function oracleWbgt(tempF, rhPct, solarWm2, windMph) {
 }
 
 function oracleTier(wbgtF) {
-  if (wbgtF >= 90) { return 4; }
-  if (wbgtF >= 88) { return 3; }
-  if (wbgtF >= 85) { return 2; }
-  if (wbgtF >= 82) { return 1; }
+  const shown = Number(wbgtF.toFixed(1));
+  if (shown >= 90) { return 4; }
+  if (shown >= 88) { return 3; }
+  if (shown >= 85) { return 2; }
+  if (shown >= 82) { return 1; }
   return 0;
 }
 
@@ -127,17 +128,17 @@ test('bot sweep over 592,704 simulated schedule combinations', () => {
             // Scoring consistency on the opening block of each combination.
             const rec0 = recs[0];
             const exact = E.scoreCall(rec0.tier, rec0.tier);
-            const looser = E.scoreCall(Math.min(4, rec0.tier + 1), rec0.tier);
-            const stricter = E.scoreCall(Math.max(0, rec0.tier - 1), rec0.tier);
+            const under = E.scoreCall(Math.max(0, rec0.tier - 1), rec0.tier);
+            const over = E.scoreCall(Math.min(4, rec0.tier + 1), rec0.tier);
             if (exact.points !== 100 || exact.quality !== 'exact' || exact.unsafe) { vScore += 1; }
-            if (rec0.tier < 4) {
-              if (!looser.unsafe || looser.points > 15) { vScore += 1; }
-            } else if (looser.quality !== 'exact' || looser.unsafe) {
+            if (rec0.tier > 0) {
+              if (!under.unsafe || under.points > 15) { vScore += 1; }
+            } else if (under.quality !== 'exact' || under.unsafe) {
               vScore += 1;
             }
-            if (rec0.tier > 0) {
-              if (stricter.unsafe || stricter.points < 40) { vScore += 1; }
-            } else if (stricter.quality !== 'exact' || stricter.unsafe) {
+            if (rec0.tier < 4) {
+              if (over.unsafe || over.points < 40) { vScore += 1; }
+            } else if (over.quality !== 'exact' || over.unsafe) {
               vScore += 1;
             }
           }

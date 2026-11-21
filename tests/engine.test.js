@@ -117,14 +117,18 @@ test('WBGT composition', () => {
 });
 
 test('tier mapping and escalation thresholds', () => {
-  eq(E.tierIndexFromF(81.99), 0, '81.99 F stays Normal');
+  eq(E.tierIndexFromF(81.94), 0, 'a reading displayed as 81.9 stays Normal');
+  eq(E.tierIndexFromF(81.99), 1, 'a reading displayed as 82.0 lands in Watch');
   eq(E.tierIndexFromF(82), 1, '82 F escalates to Watch');
-  eq(E.tierIndexFromF(84.99), 1, '84.99 F stays Watch');
+  eq(E.tierIndexFromF(84.99), 2, 'a reading displayed as 85.0 lands in Caution');
   eq(E.tierIndexFromF(85), 2, '85 F escalates to Caution');
-  eq(E.tierIndexFromF(87.99), 2, '87.99 F stays Caution');
+  eq(E.tierIndexFromF(87.99), 3, 'a reading displayed as 88.0 lands in Warning');
   eq(E.tierIndexFromF(88), 3, '88 F escalates to Warning');
-  eq(E.tierIndexFromF(89.99), 3, '89.99 F stays Warning');
+  eq(E.tierIndexFromF(89.99), 4, 'a reading displayed as 90.0 lands in Danger');
   eq(E.tierIndexFromF(90), 4, '90 F escalates to Danger');
+  eq(E.tierIndexFromF(89.96), 4, 'a reading displayed as 90.0 lands in Danger');
+  eq(E.tierIndexFromF(89.94), 3, 'a reading displayed as 89.9 stays Warning');
+  eq(E.tierIndexFromF(NaN), 4, 'a non finite reading fails toward Danger');
   deq(E.TIER_THRESHOLDS_F, { watch: 82, caution: 85, warning: 88, danger: 90 }, 'threshold table matches the published bands');
   eq(E.TIERS.length, 5, 'five activity tiers exist');
   deq(E.TIERS.map(function (t) { return t.key; }), ['normal', 'watch', 'caution', 'warning', 'danger'], 'tier keys are in escalation order');
@@ -205,18 +209,33 @@ test('schedule templates and block evaluation', () => {
 
 test('scoring, streaks, grades, and day reports', () => {
   deq(E.scoreCall(2, 2), { points: 100, quality: 'exact', unsafe: false }, 'an exact call scores 100');
-  deq(E.scoreCall(1, 2), { points: 75, quality: 'cautious', unsafe: false }, 'one tier cautious scores 75');
-  deq(E.scoreCall(0, 2), { points: 40, quality: 'overcautious', unsafe: false }, 'two tiers cautious scores 40');
-  deq(E.scoreCall(3, 2), { points: 15, quality: 'undercall', unsafe: true }, 'one tier loose scores 15 and is unsafe');
-  deq(E.scoreCall(4, 2), { points: 0, quality: 'critical', unsafe: true }, 'two tiers loose scores zero and is critical');
+  deq(E.scoreCall(1, 2), { points: 15, quality: 'undercall', unsafe: true }, 'one flag under the recommendation scores 15 and is unsafe');
+  deq(E.scoreCall(0, 2), { points: 0, quality: 'critical', unsafe: true }, 'two flags under the recommendation scores zero and is critical');
+  deq(E.scoreCall(3, 2), { points: 75, quality: 'cautious', unsafe: false }, 'one flag over the recommendation is cautious');
+  deq(E.scoreCall(4, 2), { points: 40, quality: 'overcautious', unsafe: false }, 'two flags over the recommendation is overcautious');
   eq(E.scoreCall(2, 2).unsafe, false, 'exact calls are never unsafe');
-  eq(E.scoreCall(3, 2).unsafe, true, 'undercalls are flagged unsafe');
-  eq(E.scoreCall(4, 0).points, 0, 'calling Normal in Danger scores zero');
-  eq(E.scoreCall(0, 4).points, 40, 'calling Danger in Normal is overcautious, not dangerous');
+  eq(E.scoreCall(1, 2).unsafe, true, 'undercalls are flagged unsafe');
+  eq(E.scoreCall(0, 4).points, 0, 'calling Normal in Danger scores zero');
+  eq(E.scoreCall(4, 0).points, 40, 'calling Danger in Normal is overcautious, not dangerous');
   eq(E.scoreCall(4, 4).quality, 'exact', 'a Danger call under Danger conditions is exact');
   eq(E.scoreCall(0, 0).quality, 'exact', 'a Normal call under Normal conditions is exact');
-  eq(E.scoreCall(1, 0).unsafe, true, 'loosening a Normal day is still an undercall');
-  deq(E.scoreCall(3, 0).quality, 'critical', 'three tiers loose is a critical undercall');
+  eq(E.scoreCall(1, 0).unsafe, false, 'overcalling a Normal day is cautious, not unsafe');
+  deq(E.scoreCall(1, 4).quality, 'critical', 'three flags under the recommendation is a critical undercall');
+  let unsafeDirection = true;
+  let exactScores = true;
+  for (let rec = 0; rec <= 4; rec += 1) {
+    for (let chosen = 0; chosen <= 4; chosen += 1) {
+      const s = E.scoreCall(chosen, rec);
+      if (s.unsafe !== (chosen < rec)) { unsafeDirection = false; }
+      if (chosen === rec && s.points !== 100) { exactScores = false; }
+    }
+  }
+  ok(unsafeDirection, 'a call is unsafe exactly when it undercalls the recommendation');
+  ok(exactScores, 'every exact call scores 100 across the flag grid');
+  ok(E.scoreCall(0, 4).points < E.scoreCall(4, 0).points, 'the dangerous miss scores lower than the cautious miss');
+  deq(E.scoreCall(2.4, 2), { points: 100, quality: 'exact', unsafe: false }, 'fractional calls round to the nearest flag');
+  deq(E.scoreCall('x', 2), { points: 0, quality: 'critical', unsafe: true }, 'a non numeric call fails toward critical');
+  deq(E.scoreCall(9, 2), { points: 40, quality: 'overcautious', unsafe: false }, 'an out of range call clamps into the flags');
   eq(E.computeStreakBonus(['exact', 'exact']), 10, 'a second consecutive exact adds 10');
   eq(E.computeStreakBonus(['exact', 'exact', 'exact']), 20, 'a third consecutive exact adds 20 more');
   eq(E.computeStreakBonus(['exact', 'exact', 'exact', 'exact', 'exact', 'exact', 'exact']), 50, 'the streak bonus caps at 50');
@@ -237,10 +256,16 @@ test('scoring, streaks, grades, and day reports', () => {
   eq(perfect.total, 400, 'four exact calls max out the day');
   eq(perfect.grade, 'A', 'a perfect day earns an A');
   eq(perfect.unsafeCount, 0, 'a perfect day has no unsafe calls');
-  const mixed = E.dayReport([{ chosen: 2, recommended: 2 }, { chosen: 3, recommended: 2 }, { chosen: 2, recommended: 2 }, { chosen: 2, recommended: 2 }]);
+  const mixed = E.dayReport([{ chosen: 2, recommended: 2 }, { chosen: 1, recommended: 2 }, { chosen: 2, recommended: 2 }, { chosen: 2, recommended: 2 }]);
   eq(mixed.points, 315, 'one undercall costs 85 points');
   eq(mixed.unsafeCount, 1, 'the report counts the unsafe call');
   eq(mixed.grade, 'C', 'one undercall drops the day to a C');
+  const overCalled = E.dayReport([{ chosen: 4, recommended: 2 }, { chosen: 4, recommended: 2 }]);
+  eq(overCalled.unsafeCount, 0, 'overcalling every block is safe, just inefficient');
+  eq(overCalled.points, 80, 'two overcautious calls earn 80 points');
+  const underCalled = E.dayReport([{ chosen: 0, recommended: 4 }, { chosen: 3, recommended: 4 }]);
+  eq(underCalled.unsafeCount, 2, 'undercalling every block counts every unsafe call');
+  eq(underCalled.points, 15, 'a critical miss and a one flag undercall earn 15 points');
   const empty = E.dayReport([]);
   eq(empty.grade, 'F', 'an empty day fails');
   eq(empty.pct, 0, 'an empty day scores zero percent');
@@ -260,6 +285,9 @@ test('judge plan generators', () => {
     'a Watch tier block gets the water break violation copy');
   eq(unsafe.violations.length, recs.length, 'the unsafe plan lists a violation per block');
   ok(unsafe.violations[2].indexOf('full pads') !== -1, 'the peak heat violation calls out full pads');
+  ok(unsafe.picks.every(function (pick) {
+    return pick.chosen >= pick.recommended || E.scoreCall(pick.chosen, pick.recommended).unsafe;
+  }), 'every unsafe plan pick below the recommendation scores as unsafe');
   deq(E.unsafePlanFor(recs), unsafe, 'the unsafe plan generator is deterministic');
 
   const safe = E.safeCallFor(recs);
@@ -287,6 +315,35 @@ test('walkthrough copy and engine copy hygiene', () => {
   eq(E.formatF(95.51), '95.5 F', 'formatF keeps one decimal and a space before F');
 });
 
+test('degenerate inputs fail toward the protective reading', () => {
+  eq(E.tierForInputs({ tempF: NaN, humidityPct: NaN, solarWm2: NaN, windMph: NaN }), 4,
+    'non numeric weather inputs degrade to Danger, never a silent green flag');
+  ok(Number.isFinite(E.wbgtFromInputs(null).wbgtF), 'a null input set still produces a finite reading');
+  ok(Number.isFinite(E.wbgtFromInputs({}).wbgtF), 'an empty input set still produces a finite reading');
+  let wetAboveDry = false;
+  for (let tc = -20; tc <= 55; tc += 5) {
+    for (let rh = 5; rh <= 99; rh += 7) {
+      if (E.stullWetBulbC(tc, rh) > tc + 1e-9) { wetAboveDry = true; }
+    }
+  }
+  ok(!wetAboveDry, 'wet bulb never exceeds dry bulb across the clamped range');
+});
+
+test('the flag always matches the displayed reading', () => {
+  const bandOf = function (shown) {
+    return shown >= 90 ? 4 : shown >= 88 ? 3 : shown >= 85 ? 2 : shown >= 82 ? 1 : 0;
+  };
+  let consistent = true;
+  for (const preset of E.PRESETS) {
+    for (const template of E.SCHEDULE_TEMPLATES) {
+      for (const rec of E.recommendedFlagsFor(preset, template)) {
+        if (rec.tier !== bandOf(Number(rec.wbgtF.toFixed(1)))) { consistent = false; }
+      }
+    }
+  }
+  ok(consistent, 'every recommended flag matches the one decimal reading the player sees');
+});
+
 test('self audit: content assertion count is exact', () => {
-  assert.strictEqual(count, 158, 'the engine suite must hold exactly 158 content assertions');
+  assert.strictEqual(count, 178, 'the engine suite must hold exactly 178 content assertions');
 });

@@ -11,7 +11,8 @@
  * Science notes, stated honestly:
  * - Wet bulb temperature uses the Stull (2011) approximation, accurate to
  *   roughly 0.3 C for relative humidity between 5 and 99 percent and air
- *   temperature between minus 20 and 50 C. Inputs are clamped to that window.
+ *   temperature between minus 20 and 50 C. Inputs clamp to minus 20 through
+ *   55 C, so the hottest presets extrapolate the published fit slightly.
  * - Outdoor WBGT uses the standard weighting 0.7 wet bulb, 0.2 globe,
  *   0.1 dry bulb.
  * - Globe temperature uses a simplified empirical rise over air temperature
@@ -106,7 +107,9 @@ const FlagCallEngine = (function () {
     const second = Math.atan(t + rh);
     const third = Math.atan(rh - 1.676331);
     const fourth = 0.00391838 * Math.pow(rh, 1.5) * Math.atan(0.023101 * rh);
-    return first + second - third + fourth - 4.686035;
+    // The fit overshoots the dry bulb by a few hundredths of a degree near
+    // saturation in extreme heat; wet bulb physically cannot exceed it.
+    return Math.min(first + second - third + fourth - 4.686035, t);
   }
 
   // Simplified globe rise over air temperature in Celsius. Strong sun pushes
@@ -123,11 +126,18 @@ const FlagCallEngine = (function () {
   }
 
   // Core readout. inputs: { tempF, humidityPct, solarWm2, windMph }.
+  // Missing or non numeric fields degrade toward the most protective
+  // reading rather than a silent green flag.
   function wbgtFromInputs(inputs) {
-    const tempF = clamp(Number(inputs.tempF), 32, 131);
-    const rhPct = clamp(Number(inputs.humidityPct), 5, 99);
-    const solarWm2 = clamp(Number(inputs.solarWm2), 0, 1200);
-    const windMph = Math.max(0, Number(inputs.windMph));
+    const src = inputs || {};
+    const num = function (value, fallback) {
+      const n = Number(value);
+      return Number.isFinite(n) ? n : fallback;
+    };
+    const tempF = clamp(num(src.tempF, 131), 32, 131);
+    const rhPct = clamp(num(src.humidityPct, 99), 5, 99);
+    const solarWm2 = clamp(num(src.solarWm2, 1200), 0, 1200);
+    const windMph = Math.max(0, num(src.windMph, 0));
     const tempC = fToC(tempF);
     const wetBulbC = stullWetBulbC(tempC, rhPct);
     const globeC = globeTempC(tempC, solarWm2, windMph);
@@ -141,11 +151,16 @@ const FlagCallEngine = (function () {
     };
   }
 
+  // The readout is displayed with one decimal, so the flag is computed from
+  // the same rounded value the player can see. A non finite reading fails
+  // toward Danger rather than a silent Normal.
   function tierIndexFromF(wbgtF) {
-    if (wbgtF >= TIER_THRESHOLDS_F.danger) { return 4; }
-    if (wbgtF >= TIER_THRESHOLDS_F.warning) { return 3; }
-    if (wbgtF >= TIER_THRESHOLDS_F.caution) { return 2; }
-    if (wbgtF >= TIER_THRESHOLDS_F.watch) { return 1; }
+    if (!Number.isFinite(wbgtF)) { return TIERS.length - 1; }
+    const shown = Number(wbgtF.toFixed(1));
+    if (shown >= TIER_THRESHOLDS_F.danger) { return 4; }
+    if (shown >= TIER_THRESHOLDS_F.warning) { return 3; }
+    if (shown >= TIER_THRESHOLDS_F.caution) { return 2; }
+    if (shown >= TIER_THRESHOLDS_F.watch) { return 1; }
     return 0;
   }
 
@@ -298,24 +313,28 @@ const FlagCallEngine = (function () {
     });
   }
 
-  // Scoring. Chosen tier lower than recommended means the player was more
-  // cautious than required. Higher means less safe. Undercalling is punished
-  // much harder than overcalling.
+  // Scoring. A call below the recommended flag is the dangerous undercall:
+  // it leaves more activity running than the heat allows. A call above the
+  // recommendation is the cautious direction. Undercalling is punished much
+  // harder than overcalling. Out of range inputs clamp into the five flags
+  // and non numeric calls fail toward critical rather than silent safe.
   function scoreCall(chosenTier, recommendedTier) {
-    const diff = chosenTier - recommendedTier;
+    const chosen = clamp(Math.round(Number(chosenTier)), 0, TIERS.length - 1);
+    const recommended = clamp(Math.round(Number(recommendedTier)), 0, TIERS.length - 1);
+    const diff = chosen - recommended;
     if (diff === 0) {
-      return { points: 100, quality: 'exact', unsafe: diff > 0 };
-    }
-    if (diff === -1) {
-      return { points: 75, quality: 'cautious', unsafe: diff > 0 };
-    }
-    if (diff <= -2) {
-      return { points: 40, quality: 'overcautious', unsafe: diff > 0 };
+      return { points: 100, quality: 'exact', unsafe: false };
     }
     if (diff === 1) {
-      return { points: 15, quality: 'undercall', unsafe: diff > 0 };
+      return { points: 75, quality: 'cautious', unsafe: false };
     }
-    return { points: 0, quality: 'critical', unsafe: diff > 0 };
+    if (diff >= 2) {
+      return { points: 40, quality: 'overcautious', unsafe: false };
+    }
+    if (diff === -1) {
+      return { points: 15, quality: 'undercall', unsafe: true };
+    }
+    return { points: 0, quality: 'critical', unsafe: true };
   }
 
   // Ten bonus points for each exact call beyond the first in a consecutive
@@ -385,8 +404,8 @@ const FlagCallEngine = (function () {
       };
     });
     const violations = [];
-    recs.forEach(function (rec) {
-      const pick = picks[rec.index];
+    recs.forEach(function (rec, i) {
+      const pick = picks[i];
       const score = scoreCall(pick.chosen, rec.tier);
       if (rec.tier >= 2 && pick.chosen < rec.tier) {
         violations.push(rec.time + ' ' + rec.label + ': full pads at peak heat while the ' +

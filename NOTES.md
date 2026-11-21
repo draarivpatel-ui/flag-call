@@ -18,7 +18,7 @@ this build; the repo goes public tomorrow per the pipeline plan.
   practice card templates, call scoring with streak bonus and grades, the unsafe plan and safe call
   generators, and the Day 1 walkthrough copy. Node importable for tests.
 - `tests/`: three suites, detailed below.
-- `scripts/dom-smoke.js`: a Node side wiring check with a minimal DOM stub (32 checks across a
+- `scripts/dom-smoke.js`: a Node side wiring check with a minimal DOM stub (33 checks across a
   reduced motion pass and a normal motion pass). Not part of the default suite.
 - `README.md` and `LICENSE` (MIT).
 
@@ -35,23 +35,24 @@ this build; the repo goes public tomorrow per the pipeline plan.
   and compact judge shortcuts.
 - One tap judge shortcuts: yes, "See an Unsafe Plan" and "Show the Safe Call" in the panel and in
   the run bar.
-- Scoring: exact 100, one tier cautious 75, two or more cautious 40, one tier loose 15, two or more
-  loose 0 and marked unsafe, plus a capped 50 point exact streak bonus.
+- Scoring: exact 100, one flag above the recommendation (overcautious) 75, two or more above 40,
+  one flag below the recommendation (undercall) 15, two or more below 0 and marked unsafe, plus a
+  capped 50 point exact streak bonus.
 
 ## Exact real test counts
 
-`npm test` runs 20 tests, 20 pass, 0 fail, about 242 ms on this machine. Well inside the 60 second
+`npm test` runs 22 tests, 22 pass, 0 fail, about 1.2 s on this machine. Well inside the 60 second
 budget. No network access anywhere.
 
-- `tests/engine.test.js`: 158 content assertions plus 1 self audit assertion that locks the count
-  at exactly 158. 12 tests total.
+- `tests/engine.test.js`: 178 content assertions plus 1 self audit assertion that locks the count
+  at exactly 178. 14 tests total.
 - `tests/accessibility.test.js`: 34 content assertions plus 1 self audit assertion that locks the
   count at exactly 34. 7 tests total. Four of the checkpoints compute real WCAG contrast ratios
   from the parsed CSS tokens and require 4.5 to 1 or better.
 - `tests/bot-sweep.test.js`: 1 test with 12 assertions over the sweep run.
 
-That is 192 content assertions and 206 total assertion calls. `scripts/dom-smoke.js` adds 32 wiring
-checks outside the default suite, 24 on the reduced motion pass and 8 on the normal motion pass.
+That is 212 content assertions and 226 total assertion calls. `scripts/dom-smoke.js` adds 33 wiring
+checks outside the default suite, 25 on the reduced motion pass and 8 on the normal motion pass.
 
 ## The bot sweep
 
@@ -65,7 +66,7 @@ recomputes the same reading with an independent inline oracle, and checks:
 - determinism on repeat evaluation,
 - WBGT inside its physical component bounds,
 - monotonicity along the humidity, sunlight, and wind axes,
-- scoring consistency for exact, one tier loose, and one tier cautious calls,
+- scoring consistency for exact, one flag undercall, and one flag overcall,
 - that all five tiers actually occur.
 
 The sweep finishes in about 205 ms.
@@ -89,7 +90,7 @@ claiming otherwise.
   audit. This build used no browser at all: the page was verified with static tests, a syntax
   check of the inline script, and the Node DOM stub smoke script. A real browser pass (focus order,
   screen reader announcement behavior, paint quality) is still worth doing before demoing.
-- The WBGT engine is well covered by tests; the presentation layer is covered by the 24 stub
+- The WBGT engine is well covered by tests; the presentation layer is covered by the 25 stub
   checks and static analysis only.
 - The sweep's scoring checks cover the opening block of every combination, not every block of
   every combination, to keep the run fast.
@@ -105,7 +106,7 @@ claiming otherwise.
   cards.
 - Two one tap judge shortcuts, "See an Unsafe Plan" and "Show the Safe Call", put the heat policy
   reasoning on the table instantly, on desktop or in the sticky mobile run bar.
-- The engine is verified by 192 content assertions across 20 node:test tests (158 engine, 34
+- The engine is verified by 212 content assertions across 22 node:test tests (178 engine, 34
   accessibility checkpoints with real computed contrast ratios), including an independent
   psychrometric cross check of the wet bulb math. Static, vanilla, zero dependencies, GitHub Pages
   ready.
@@ -115,8 +116,8 @@ claiming otherwise.
 
 ## Verification log
 
-- `npm test`: 20 of 20 passing, 0 failing, duration about 242 ms.
-- `node scripts/dom-smoke.js`: 24 checks on the reduced motion pass plus 8 on the normal motion
+- `npm test`: 22 of 22 passing, 0 failing, duration about 1.2 s.
+- `node scripts/dom-smoke.js`: 25 checks on the reduced motion pass plus 8 on the normal motion
   path, all passing.
 - Honesty and privacy scans: no em or en dashes anywhere, no emoji, no private email or address
   strings, no school, city, or club claims about the author.
@@ -143,3 +144,34 @@ claiming otherwise.
   selector. Browsers without it still let the radio group work; the chosen flag just does not
   gain the accent ring.
 - Tests: 20 before the pass, 20 after, all passing. Smoke: 24 checks plus 8 on the normal motion path.
+
+## Revamp Pass 2026-11-21
+
+- Fixed, scoring direction. `scoreCall` had the flag axis inverted: calling below the recommended
+  flag (the dangerous undercall) scored 75 or 40 and read safe, while calling above it scored 15 or
+  0 and was marked unsafe. The game's own unsafe plan scored zero unsafe calls. Direction is now
+  undercall below, overcautious above, and the sweep and engine tests assert the real axis.
+- Fixed, display and flag agreement. The tier was computed from the raw float while the readout
+  showed one decimal, so a block could display 90.0 F WBGT next to a Warning flag. The tier is now
+  computed from the same rounded value the player sees.
+- Fixed, focus loss. Every flag selection rebuilt the schedule list and dropped keyboard focus.
+  Focus now returns to the rebuilt control.
+- Fixed, free play coach bleed. The walkthrough next and back controls still spotlighted and
+  grabbed focus in free play. They are gated to walk mode and disabled outside it, and the dead
+  `document.body.dataset.mode` write is gone.
+- Fixed, live region scope. `aria-live` wrapped the animated readout, which announces every tween
+  frame. It now sits on the tier chip, whose changes are discrete and meaningful.
+- Fixed, smoke harness. `scripts/dom-smoke.js` had no `document.body` in its stub and crashed on
+  the mode switch. Both stubs carry one, plus a focus restoration check.
+- Fixed, input hardening. Non numeric weather inputs produced NaN readouts and a silent Normal
+  flag. They now degrade toward the protective reading, and non numeric or out of range flag calls
+  fail toward critical rather than safe.
+- Fixed, physics guard. The Stull fit overshot the dry bulb by a few hundredths of a degree near
+  saturation; wet bulb is now capped at the dry bulb value.
+- Fixed, label in name. The city preset buttons carried aria labels that did not contain their
+  visible text. The visible text names them, so the override came off.
+- Hygiene. `html { scroll-behavior: smooth }` removed; the reduced motion block still covers the
+  JS scrolling calls, which already honor the preference. The header tagline under the title is
+  gone; the title stands alone.
+- Tests: 20 before the pass, 22 after, all passing. Assertions: 192 content, 212 after. Smoke: 25
+  checks plus 8 on the normal motion path.

@@ -23,7 +23,7 @@
 
 * { box-sizing: border-box; }
 
-html { scroll-behavior: smooth; overflow-x: clip; }
+html { overflow-x: clip; }
 
 body {
   margin: 0;
@@ -102,8 +102,6 @@ a { color: var(--accent); }
 .wordmark svg { width: 40px; height: 40px; flex: none; }
 
 .wordmark h1 { font-size: 1.9rem; margin: 0; }
-
-.tagline { color: var(--ink-muted); margin: 2px 0 0; max-width: 46ch; }
 
 .mode-switch { display: flex; gap: 8px; }
 

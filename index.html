@@ -28,7 +28,6 @@
         </svg>
         <div>
           <h1>Flag Call</h1>
-          <p class="tagline">The wet bulb globe temperature decision game for hot practice days</p>
         </div>
       </div>
       <nav aria-label="Primary">
@@ -92,10 +91,10 @@
           <section class="panel readout-panel" aria-labelledby="readout-title">
             <h2 id="readout-title">Heat Readout</h2>
             <div class="readout-top">
-              <div aria-live="polite">
+              <div>
                 <div class="wbgt-value"><span id="wbgt-number">95.5</span> <span class="wbgt-unit">F WBGT</span></div>
               </div>
-              <div class="tier-chip" id="tier-chip" data-tier="4">
+              <div class="tier-chip" id="tier-chip" data-tier="4" aria-live="polite">
                 <span class="dot" aria-hidden="true"></span>
                 <span id="tier-name">Danger</span>
               </div>
@@ -256,7 +255,6 @@
         btn.type = 'button';
         btn.className = 'preset';
         btn.setAttribute('aria-pressed', i === state.presetIdx ? 'true' : 'false');
-        btn.setAttribute('aria-label', 'Load the ' + p.city + ' heat snapshot at ' + p.tempF + ' degrees Fahrenheit');
         btn.innerHTML = '<span class="city">' + p.city + ', ' + p.state + '</span>' +
           '<span class="temp">' + p.tempF + ' F</span>' +
           '<span class="blurb">' + p.blurb + '</span>';
@@ -437,7 +435,6 @@
       $('coach-step').textContent = 'Step ' + (state.step + 1) + ' of ' + steps.length;
       $('coach-step-title').textContent = step.title;
       $('coach-step-body').textContent = step.body;
-      $('coach-back').disabled = state.step === 0;
       $('coach-next').textContent = state.step === steps.length - 1 ? 'Enter Free Play' : 'Next';
       var dots = $('coach-dots');
       dots.innerHTML = '';
@@ -446,16 +443,21 @@
         dot.type = 'button';
         dot.setAttribute('aria-label', 'Go to walkthrough step ' + (i + 1) + ' of ' + steps.length);
         dot.setAttribute('aria-current', i === state.step ? 'true' : 'false');
-        dot.addEventListener('click', function () { state.step = i; applyStep(true); });
+        dot.addEventListener('click', function () {
+          if (state.mode === 'walk') { state.step = i; applyStep(true); }
+        });
         dots.appendChild(dot);
       });
-      spotlight(step.focus);
-      if (announce) { $('coach-step-title').focus(); }
+      $('coach-back').disabled = state.mode !== 'walk' || state.step === 0;
+      $('coach-next').disabled = state.mode !== 'walk';
+      if (state.mode === 'walk') {
+        spotlight(step.focus);
+        if (announce) { $('coach-step-title').focus(); }
+      }
     }
 
     function setMode(mode) {
       state.mode = mode;
-      document.body.dataset.mode = mode;
       $('mode-walk').setAttribute('aria-pressed', mode === 'walk' ? 'true' : 'false');
       $('mode-free').setAttribute('aria-pressed', mode === 'free' ? 'true' : 'false');
       if (mode === 'walk') {
@@ -463,6 +465,8 @@
         applyStep(true);
       } else {
         clearSpotlight();
+        $('coach-back').disabled = true;
+        $('coach-next').disabled = true;
       }
     }
 
@@ -505,9 +509,12 @@
         var t = ev.target;
         if (t && t.name && t.name.indexOf('call-') === 0) {
           var idx = parseInt(t.name.slice(5), 10);
+          var focusId = t.id;
           state.calls[idx] = parseInt(t.value, 10);
           renderSchedule();
           renderReport();
+          var again = focusId ? $(focusId) : null;
+          if (again && again.focus) { again.focus(); }
         }
       });
 
@@ -525,9 +532,10 @@
       });
 
       $('coach-back').addEventListener('click', function () {
-        if (state.step > 0) { state.step -= 1; applyStep(true); }
+        if (state.mode === 'walk' && state.step > 0) { state.step -= 1; applyStep(true); }
       });
       $('coach-next').addEventListener('click', function () {
+        if (state.mode !== 'walk') { return; }
         if (state.step < E.WALKTHROUGH_STEPS.length - 1) {
           state.step += 1;
           applyStep(true);
