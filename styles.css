@@ -171,7 +171,7 @@ a { color: var(--accent); }
 
 /* Layout */
 
-.game-layout { display: grid; gap: 22px; padding-bottom: 48px; }
+.game-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; padding-bottom: 48px; }
 
 .panel {
   background: var(--panel);
@@ -446,6 +446,108 @@ input[type="range"] {
 }
 
 .report-line { color: var(--ink-muted); }
+
+/* Audit lab */
+
+.lab-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 22px;
+  align-items: flex-end;
+  margin-top: 12px;
+}
+
+.lab-field { min-width: 220px; flex: 1 1 220px; }
+
+.lab-field select { width: 100%; }
+
+.lab-field textarea {
+  width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  background: var(--bg-deep);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+  resize: vertical;
+}
+
+.lab-sub { margin-top: 20px; }
+
+.lab-chart {
+  margin-top: 8px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.lab-chart svg { width: 100%; height: auto; display: block; }
+
+.lab-svg-note { font-size: 11px; fill: var(--ink-muted); font-variant-numeric: tabular-nums; }
+
+.lab-svg-name { font-size: 12px; font-weight: 700; fill: var(--ink); }
+
+.lab-svg-val { font-size: 12px; font-weight: 700; fill: var(--ink); font-variant-numeric: tabular-nums; }
+
+.lab-table-wrap { overflow-x: auto; min-width: 0; margin-top: 8px; }
+
+.lab-compare {
+  width: 100%;
+  min-width: 660px;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.9rem;
+}
+
+.lab-compare caption {
+  text-align: left;
+  color: var(--ink-muted);
+  font-size: 0.9rem;
+  padding-bottom: 8px;
+}
+
+.lab-compare th, .lab-compare td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.lab-compare td.num { text-align: right; }
+
+.lab-compare tr.bench td { color: var(--accent); font-weight: 700; }
+
+.lab-compare tr.focus td { background: rgba(255, 162, 77, 0.08); }
+
+.lab-compare td.bad { color: var(--warn); font-weight: 700; }
+
+.lab-export-row, .lab-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.lab-status-ok { color: var(--good); font-weight: 700; }
+
+.lab-status-bad { color: var(--warn); font-weight: 700; }
+
+.lab-selftest-list {
+  margin: 10px 0 0;
+  padding-left: 22px;
+  display: grid;
+  gap: 4px;
+  font-size: 0.88rem;
+}
+
+.lab-selftest-list .st-pass { color: var(--good); }
+
+.lab-selftest-list .st-fail { color: var(--warn); }
+
+#lab-hash-out { word-break: break-all; }
 
 /* Coach */
 

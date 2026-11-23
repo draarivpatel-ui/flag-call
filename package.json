@@ -8,7 +8,10 @@
     "test:sweep": "node --test tests/bot-sweep.test.js",
     "test:engine": "node --test tests/engine.test.js",
     "test:a11y": "node --test tests/accessibility.test.js",
-    "test:smoke": "node scripts/dom-smoke.js"
+    "test:smoke": "node scripts/dom-smoke.js && node scripts/lab-smoke.js",
+    "test:lab": "node --test tests/lab.test.js",
+    "test:crypto": "node --test tests/crypto.test.js",
+    "test:audit": "node scripts/headless-audit.js"
   },
   "engines": {
     "node": ">=18"

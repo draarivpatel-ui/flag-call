@@ -41,8 +41,8 @@ this build; the repo goes public tomorrow per the pipeline plan.
 
 ## Exact real test counts
 
-`npm test` runs 22 tests, 22 pass, 0 fail, about 1.2 s on this machine. Well inside the 60 second
-budget. No network access anywhere.
+`npm test` runs 670 tests, 670 pass, 0 fail, about 0.6 s on this machine. Well inside the 60
+second budget. No network access anywhere.
 
 - `tests/engine.test.js`: 178 content assertions plus 1 self audit assertion that locks the count
   at exactly 178. 14 tests total.
@@ -50,9 +50,15 @@ budget. No network access anywhere.
   count at exactly 34. 7 tests total. Four of the checkpoints compute real WCAG contrast ratios
   from the parsed CSS tokens and require 4.5 to 1 or better.
 - `tests/bot-sweep.test.js`: 1 test with 12 assertions over the sweep run.
+- `tests/crypto.test.js`: 1,728 content assertions plus 1 self audit assertion that locks the
+  count at exactly 1728. 544 tests total.
+- `tests/lab.test.js`: 1,463 content assertions plus 1 self audit assertion that locks the count
+  at exactly 1463. 104 tests total.
 
-That is 212 content assertions and 226 total assertion calls. `scripts/dom-smoke.js` adds 33 wiring
-checks outside the default suite, 25 on the reduced motion pass and 8 on the normal motion pass.
+That is 3,403 content assertions and 3,419 total assertion calls. `scripts/dom-smoke.js` adds 33
+wiring checks outside the default suite, 25 on the reduced motion pass and 8 on the normal motion
+pass. `scripts/lab-smoke.js` adds 36 Audit Lab wiring checks, and `scripts/headless-audit.js`
+adds 16 real Chromium checks across two viewports.
 
 ## The bot sweep
 
@@ -175,3 +181,63 @@ claiming otherwise.
   gone; the title stands alone.
 - Tests: 20 before the pass, 22 after, all passing. Assertions: 192 content, 212 after. Smoke: 25
   checks plus 8 on the normal motion path.
+
+## Audit Lab Pass 2026-11-23
+
+Added a full width Audit Lab workbench under the game grid, built around three new modules plus
+markup, styles, and test coverage. The lab exercises the same `js/engine.js` the game scores on;
+no parallel ruleset was written.
+
+- `js/sha256.js`: a standalone FIPS 180-4 SHA-256 in pure JS, about 90 lines, exporting for Node
+  (`module.exports`) and the browser (`FlagCallSHA256`). Verified against the FIPS known answers
+  including the million `a` vector, plus a UTF-8 encoder that maps lone surrogates to U+FFFD.
+- `js/lab.js`: the comparator core. Five scripted heat day scenarios (Gulf Surge, Desert Oven,
+  Blue Front, Steam Dawn, Evening Hang) tuned against real engine outputs so each produces
+  genuine band crossing edge cases. Five calling policies (Band Exact benchmark, Dry Bulb Guess,
+  One Flag Caution, Cancel Everything, Stale Read) run every block of every scenario under a
+  stress shift of -20 to +20 F. Metrics: points, percent, grade, unsafe undercalls, worst flag
+  gap, worst temperature exposure past the called flag ceiling, over restriction count, and delta
+  from benchmark. Also JSON, CSV, and Markdown audit brief exporters with an unkeyed SHA-256
+  trailer line (labeled as tamper detection, not a signature), CSV formula injection
+  neutralization, a replay verifier, the strict `#fc=v1.s<p>.t<s>` bookmark codec, and a 22 check
+  self test suite. Browser dependencies resolve through `typeof` guards so the file shares global
+  scope cleanly with `engine.js` and `sha256.js`.
+- `js/lab-ui.js`: the DOM adapter, loaded as an external script so the single inline script
+  expectation in the smoke suite still holds. Renders the scenario select, stress slider,
+  bookmark button, a band annotated WBGT line chart, the policy comparison table, a policy score
+  bar chart, export and verify controls, and the self test list. All charts are inline SVG built
+  from strings; no canvas and no library.
+- `index.html`: the lab section is a sibling of `.game-layout` inside `.wrap`, so it spans the
+  full wrap width on desktop and stacks naturally on mobile. Script order is engine, sha256, lab,
+  the inline game script, then lab-ui so lab-ui can read the globals it needs.
+- `styles.css`: lab block styles (controls row, subheads, chart wells, table, self test list)
+  plus the mobile fix that motivated the layout change: `.game-layout` became
+  `minmax(0, 1fr)` and `.lab-table-wrap` gained `min-width: 0` so the 660 pixel comparison table
+  scrolls inside its wrapper instead of stretching the grid track and the whole page.
+- Fixed during development. `var FlagCallEngine` and friends at the top of `lab.js` collided with
+  the `const` globals in `engine.js` and `sha256.js` under the browser's shared script scope,
+  killing the lab script silently in Chromium while Node tests stayed green. Resolved with
+  `typeof` guards instead of redeclarations. The headless audit caught this; Node alone did not.
+- Fixed during development. Lone trailing high surrogates encoded as raw bytes instead of the
+  U+FFFD replacement character; `encodeBookmark` let `NaN` slip through the clamp; and the
+  Markdown and CSV exporters hashed a body that included a trailing newline the verifier
+  stripped, so self verification always failed. All three are covered by regression tests now.
+- Representative comparator findings at 0 F shift: Band Exact scores 400 of 400 on every
+  scenario; Dry Bulb Guess bleeds points overcalling the desert arc (88 percent on Gulf Surge);
+  One Flag Caution leaves real exposure (5 F past its ceiling on Gulf Surge, 2 unsafe calls);
+  Cancel Everything stays safe but wastes 8 blocks to over restriction; Stale Read runs 11 F
+  past its ceiling on Gulf Surge. These are deterministic outputs, recomputed live.
+- `scripts/lab-smoke.js`: 36 DOM stub checks across scenario controls, the stress shift, both
+  charts, all three exports, verify and tamper paths, bookmark copy and hash restore, and the
+  self test button.
+- `scripts/headless-audit.js`: a zero dependency CDP driver (built in WebSocket on Node 26) that
+  launches real headless Chromium at 1440x900 and 390x844, fails on console errors, uncaught
+  page errors, browser log errors, external network requests, or horizontal overflow, and checks
+  that the game UI, both SVG charts, the comparison table, and the in page self tests (22 of 22)
+  all render. 16 checks, 0 failures.
+- Tests: 22 before the pass, 670 after, all passing. Content assertions: 212 before, 3,403
+  after. Smoke: 33 dom checks plus 36 lab checks. Headless audit: 16 checks. The lab section adds
+  no external requests; the CSP is unchanged.
+- Honesty note: the digest is unkeyed SHA-256 tamper detection, never described as a signature.
+  All "verify" flows recompute rather than trust, and every number in the README, this file, and
+  the tests was read off live runs, not written from memory.

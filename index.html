@@ -163,6 +163,62 @@
           </aside>
         </div>
       </div>
+
+      <section class="panel lab-panel" aria-labelledby="lab-title">
+        <h2 id="lab-title">Audit Lab</h2>
+        <p class="panel-note">Stress test five realistic heat days against five calling
+          policies. Every number on this bench recomputes live from the same engine the
+          game scores on.</p>
+
+        <div class="lab-controls">
+          <div class="field lab-field">
+            <label for="lab-scenario">Heat day scenario</label>
+            <select id="lab-scenario" class="btn"></select>
+          </div>
+          <div class="field lab-field">
+            <label for="lab-shift">Stress shift <output id="lab-shift-out" for="lab-shift">0 F</output></label>
+            <p class="hint" id="lab-shift-hint">Run the whole day hotter or cooler, in degrees Fahrenheit.</p>
+            <input type="range" id="lab-shift" min="-20" max="20" step="1" value="0"
+              aria-describedby="lab-shift-hint">
+          </div>
+          <button type="button" id="lab-bookmark" class="btn">Copy Bookmark Link</button>
+        </div>
+        <p class="panel-note" id="lab-blurb"></p>
+        <p class="panel-note" id="lab-hash-out" hidden></p>
+
+        <h3 class="lab-sub">Scenario stress chart</h3>
+        <div class="lab-chart" id="lab-chart" role="img"
+          aria-label="Line chart of wet bulb globe temperature across each schedule block, baseline versus stressed day, drawn over the five flag bands"></div>
+
+        <h3 class="lab-sub">Policy comparison</h3>
+        <div class="lab-table-wrap" id="lab-table"></div>
+        <div class="lab-chart" id="lab-bars" role="img"
+          aria-label="Bar chart of each calling policy score for the selected scenario"></div>
+
+        <h3 class="lab-sub">Audit brief</h3>
+        <div class="lab-export-row">
+          <button type="button" id="lab-export-json" class="btn">Export JSON</button>
+          <button type="button" id="lab-export-csv" class="btn">Export CSV</button>
+          <button type="button" id="lab-export-md" class="btn">Export Markdown</button>
+        </div>
+        <div class="field lab-field">
+          <label for="lab-verify-text">Verify an export</label>
+          <p class="hint" id="lab-verify-hint">Paste an exported JSON brief, or any export
+            that ends in its sha256 line. JSON briefs also replay every number back through
+            the engine. The digest is unkeyed SHA-256: it detects edits, it is not a signature.</p>
+          <textarea id="lab-verify-text" rows="5" spellcheck="false"
+            aria-describedby="lab-verify-hint"></textarea>
+        </div>
+        <div class="lab-row">
+          <button type="button" id="lab-verify-btn" class="btn">Verify Brief</button>
+          <span id="lab-verify-out" role="status" aria-live="polite"></span>
+        </div>
+        <div class="lab-row">
+          <button type="button" id="lab-selftest-btn" class="btn">Run Self-Tests</button>
+          <span id="lab-selftest-summary" role="status" aria-live="polite"></span>
+        </div>
+        <ol class="lab-selftest-list" id="lab-selftest-out"></ol>
+      </section>
     </div>
   </main>
 
@@ -196,6 +252,8 @@
   </dialog>
 
   <script src="js/engine.js"></script>
+  <script src="js/sha256.js"></script>
+  <script src="js/lab.js"></script>
   <script>
   (function () {
     'use strict';
@@ -555,5 +613,6 @@
     init();
   })();
   </script>
+  <script src="js/lab-ui.js"></script>
 </body>
 </html>
