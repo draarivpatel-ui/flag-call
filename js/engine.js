@@ -91,6 +91,15 @@ const FlagCallEngine = (function () {
     return Math.max(lo, Math.min(hi, value));
   }
 
+  // Only real numbers and nonempty numeric strings count as numeric input.
+  // null, false, empty strings and objects must not coerce to zero, which
+  // would silently turn missing heat data into the coolest possible reading.
+  function numericInput(value) {
+    if (typeof value === 'number') { return value; }
+    if (typeof value === 'string' && value.trim() !== '') { return Number(value); }
+    return NaN;
+  }
+
   function fToC(tempF) {
     return (tempF - 32) * 5 / 9;
   }
@@ -131,7 +140,7 @@ const FlagCallEngine = (function () {
   function wbgtFromInputs(inputs) {
     const src = inputs || {};
     const num = function (value, fallback) {
-      const n = Number(value);
+      const n = numericInput(value);
       return Number.isFinite(n) ? n : fallback;
     };
     const tempF = clamp(num(src.tempF, 131), 32, 131);
@@ -319,8 +328,8 @@ const FlagCallEngine = (function () {
   // harder than overcalling. Out of range inputs clamp into the five flags
   // and non numeric calls fail toward critical rather than silent safe.
   function scoreCall(chosenTier, recommendedTier) {
-    const chosen = clamp(Math.round(Number(chosenTier)), 0, TIERS.length - 1);
-    const recommended = clamp(Math.round(Number(recommendedTier)), 0, TIERS.length - 1);
+    const chosen = clamp(Math.round(numericInput(chosenTier)), 0, TIERS.length - 1);
+    const recommended = clamp(Math.round(numericInput(recommendedTier)), 0, TIERS.length - 1);
     const diff = chosen - recommended;
     if (diff === 0) {
       return { points: 100, quality: 'exact', unsafe: false };

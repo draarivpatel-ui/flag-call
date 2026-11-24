@@ -417,15 +417,23 @@ const FlagCallLab = (function () {
   // kept in order, no whitespace. The digest is computed over this.
   function canonicalJson(value) {
     if (value === null || typeof value !== 'object') {
+      if (typeof value === 'number' && !Number.isFinite(value)) { return 'null'; }
       return JSON.stringify(value);
     }
+    if (typeof value.toJSON === 'function') { return canonicalJson(value.toJSON()); }
     if (Array.isArray(value)) {
-      return '[' + value.map(canonicalJson).join(',') + ']';
+      return '[' + value.map(function (entry) {
+        const serialized = canonicalJson(entry);
+        return serialized === undefined ? 'null' : serialized;
+      }).join(',') + ']';
     }
     const keys = Object.keys(value).sort();
-    return '{' + keys.map(function (k) {
-      return JSON.stringify(k) + ':' + canonicalJson(value[k]);
-    }).join(',') + '}';
+    const parts = [];
+    keys.forEach(function (k) {
+      const serialized = canonicalJson(value[k]);
+      if (serialized !== undefined) { parts.push(JSON.stringify(k) + ':' + serialized); }
+    });
+    return '{' + parts.join(',') + '}';
   }
 
   // The brief is a compact, fully replayable record of the comparison:
@@ -490,7 +498,7 @@ const FlagCallLab = (function () {
   function csvCell(value) {
     let s = value === null || value === undefined ? '' : String(value);
     s = s.replace(/[\r\n]+/g, ' ');
-    if (/^[=+\-@\t]/.test(s)) { s = "'" + s; }
+    if (/^\s*[=+\-@]/.test(s)) { s = "'" + s; }
     return '"' + s.replace(/"/g, '""') + '"';
   }
 
@@ -554,25 +562,39 @@ const FlagCallLab = (function () {
     if (!brief || brief.format !== 'flag-call-audit-v1' || !Array.isArray(brief.scenarios)) {
       return { ok: false, detail: 'brief is not a flag-call-audit-v1 payload' };
     }
+    if (clampShift(brief.shiftF) !== brief.shiftF) {
+      return { ok: false, detail: 'brief stress shift is outside the export schema' };
+    }
+    if (brief.scenarios.length !== SCENARIOS.length) {
+      return { ok: false, detail: 'brief does not cover every scenario exactly once' };
+    }
     const mismatches = [];
-    brief.scenarios.forEach(function (s) {
-      const scenario = scenarioById(s.id);
-      if (!scenario) {
-        mismatches.push('unknown scenario ' + s.id);
+    brief.scenarios.forEach(function (s, scenarioIndex) {
+      const expectedScenario = SCENARIOS[scenarioIndex];
+      if (!s || s.id !== expectedScenario.id) {
+        mismatches.push('scenario order or coverage mismatch at position ' + scenarioIndex);
         return;
       }
-      s.policies.forEach(function (p) {
-        const evald = evaluateScenario(scenario, p.policy, brief.shiftF);
-        if (!evald) {
-          mismatches.push('unknown policy ' + p.policy);
+      if (!Array.isArray(s.policies) || s.policies.length !== POLICIES.length) {
+        mismatches.push(s.id + ' does not cover every policy exactly once');
+        return;
+      }
+      const scenario = scenarioById(s.id);
+      s.policies.forEach(function (p, policyIndex) {
+        if (!p || p.policy !== POLICIES[policyIndex].id) {
+          mismatches.push(s.id + ' policy order or coverage mismatch at position ' + policyIndex);
           return;
         }
+        const evald = evaluateScenario(scenario, p.policy, brief.shiftF);
         const t = evald.totals;
         const checks = [
           ['rawPoints', t.rawPoints, p.rawPoints],
           ['max', t.max, p.max],
           ['pct', round3(t.rawPoints / t.max), p.pct],
           ['grade', t.grade, p.grade],
+          ['exact', t.exact, p.exact],
+          ['undercall', t.undercall, p.undercall],
+          ['critical', t.critical, p.critical],
           ['unsafe', t.unsafeCount, p.unsafe],
           ['worstGap', t.worstUnderGap, p.worstGap],
           ['worstExposureF', round3(t.worstExposureF), p.worstExposureF],
@@ -622,6 +644,10 @@ const FlagCallLab = (function () {
     const match = text.match(/^#?\s*sha256:\s*([0-9a-fA-F]{64})\s*$/m);
     if (!match) {
       return { ok: false, mode: null, detail: 'no recognizable audit digest found' };
+    }
+    const after = text.slice(match.index + match[0].length);
+    if (after.trim() !== '') {
+      return { ok: false, mode: 'text', detail: 'unexpected content follows the audit digest' };
     }
     const before = text.slice(0, match.index).replace(/[\r\n]+$/, '');
     const recomputed = SHA.sha256Hex(before.replace(/\r\n/g, '\n'));

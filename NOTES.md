@@ -41,7 +41,7 @@ this build; the repo goes public tomorrow per the pipeline plan.
 
 ## Exact real test counts
 
-`npm test` runs 670 tests, 670 pass, 0 fail, about 0.6 s on this machine. Well inside the 60
+`npm test` runs 679 tests, 679 pass, 0 fail, about 0.6 s on this machine. Well inside the 60
 second budget. No network access anywhere.
 
 - `tests/engine.test.js`: 178 content assertions plus 1 self audit assertion that locks the count
@@ -54,6 +54,9 @@ second budget. No network access anywhere.
   count at exactly 1728. 544 tests total.
 - `tests/lab.test.js`: 1,463 content assertions plus 1 self audit assertion that locks the count
   at exactly 1463. 104 tests total.
+- `tests/revamp-regression.test.js`: 9 targeted regression tests covering null and blank input
+  hardening, canonical JSON boundaries, whitespace prefixed CSV formulas, trailing digest bytes,
+  and strict complete replay verification.
 
 That is 3,403 content assertions and 3,419 total assertion calls. `scripts/dom-smoke.js` adds 33
 wiring checks outside the default suite, 25 on the reduced motion pass and 8 on the normal motion

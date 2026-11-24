@@ -86,7 +86,7 @@ Requires Node 18 or newer. No installs, no network.
 npm test
 ```
 
-That runs 670 node:test tests in well under a second:
+That runs 679 node:test tests in well under a second:
 
 - `tests/engine.test.js`: 178 content assertions covering conversion, wet bulb math, the globe
   model, WBGT composition, tier mapping, presets, schedule evaluation, scoring, plan generators,
@@ -102,6 +102,9 @@ That runs 670 node:test tests in well under a second:
 - `tests/lab.test.js`: 1,463 content assertions covering scenario definitions, policy behavior,
   comparator metrics, stress shifting, audit brief formats, replay verification, bookmark logic,
   and the self test suite (104 tests).
+- `tests/revamp-regression.test.js`: 9 targeted regression tests for null input hardening,
+  canonical JSON boundaries, CSV injection whitespace, trailing digest bytes, and complete
+  schema replay verification.
 
 Extras outside the default suite:
 
@@ -143,7 +146,8 @@ tests/engine.test.js        178 engine assertions
 tests/accessibility.test.js 34 accessibility checkpoints
 tests/bot-sweep.test.js     the 592,704 combination bot sweep
 tests/crypto.test.js        1,728 crypto, encoding, CSV, digest, and bookmark assertions
-tests/lab.test.js           1,453 comparator, export, verify, and self test assertions
+tests/lab.test.js           1,463 comparator, export, verify, and self test assertions
+tests/revamp-regression.test.js 9 targeted regression tests
 scripts/dom-smoke.js        DOM stub wiring check (33 checks)
 scripts/lab-smoke.js        Audit Lab DOM stub wiring check (36 checks)
 scripts/headless-audit.js   CDP Chromium audit at two viewports (16 checks)
