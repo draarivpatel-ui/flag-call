@@ -220,6 +220,7 @@ a { color: var(--accent); }
 /* Conditions */
 
 .input-grid {
+  min-width: 0;
   border: 0;
   padding: 0;
   margin: 14px 0 0;
@@ -235,6 +236,8 @@ a { color: var(--accent); }
   color: var(--ink-muted);
 }
 
+.field { min-width: 0; max-width: 100%; }
+
 .field label { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-weight: 600; }
 
 .field output { font-variant-numeric: tabular-nums; color: var(--accent); font-weight: 750; }
@@ -242,7 +245,9 @@ a { color: var(--accent); }
 .field .hint { color: var(--ink-muted); font-size: 0.84rem; margin: 2px 0 6px; }
 
 input[type="range"] {
-  width: 100%;
+  display: block;
+  max-width: 100%;
+  width: calc(100% - 2px);
   accent-color: var(--accent-2);
   min-height: 44px;
   background: transparent;
@@ -450,6 +455,7 @@ input[type="range"] {
 /* Audit lab */
 
 .lab-controls {
+  min-width: 0;
   display: flex;
   flex-wrap: wrap;
   gap: 14px 22px;
@@ -457,7 +463,7 @@ input[type="range"] {
   margin-top: 12px;
 }
 
-.lab-field { min-width: 220px; flex: 1 1 220px; }
+.lab-field { min-width: 220px; max-width: 100%; flex: 1 1 220px; }
 
 .lab-field select { width: 100%; }
 
