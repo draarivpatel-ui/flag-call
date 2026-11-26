@@ -84,3 +84,11 @@ test('replay verification checks every published quality count', () => {
   }
   assert.equal(L.verifyExport(signedExport(edited)).ok, false);
 });
+
+test('csvCell neutralizes invisible Unicode formula prefixes and preserves numeric negative shifts', () => {
+  for (const input of ['\u200b=1+1', '\u00a0+2', ' =3', '\u061c@sum', '\tx']) {
+    const escaped = L.csvCell(input);
+    assert.equal(escaped.charAt(1), "'", input);
+  }
+  assert.equal(L.csvCell(-20), '"-20"');
+});

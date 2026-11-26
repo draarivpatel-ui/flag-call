@@ -497,8 +497,9 @@ const FlagCallLab = (function () {
   // Excel, Sheets and friends keep it as text. Every cell is quoted.
   function csvCell(value) {
     let s = value === null || value === undefined ? '' : String(value);
+    const formula = /^[\t\r\n]/.test(s) || /^[\p{White_Space}\p{Cc}\p{Cf}\p{M}]*[=+\-@]/u.test(s);
     s = s.replace(/[\r\n]+/g, ' ');
-    if (/^\s*[=+\-@]/.test(s)) { s = "'" + s; }
+    if (typeof value !== 'number' && formula) { s = "'" + s; }
     return '"' + s.replace(/"/g, '""') + '"';
   }
 

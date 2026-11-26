@@ -86,7 +86,7 @@ Requires Node 18 or newer. No installs, no network.
 npm test
 ```
 
-That runs 680 node:test tests in well under a second:
+That runs 681 node:test tests in well under a second:
 
 - `tests/engine.test.js`: 178 content assertions covering conversion, wet bulb math, the globe
   model, WBGT composition, tier mapping, presets, schedule evaluation, scoring, plan generators,
@@ -102,7 +102,7 @@ That runs 680 node:test tests in well under a second:
 - `tests/lab.test.js`: 1,463 content assertions covering scenario definitions, policy behavior,
   comparator metrics, stress shifting, audit brief formats, replay verification, bookmark logic,
   and the self test suite (104 tests).
-- `tests/revamp-regression.test.js`: 9 targeted regression tests for null input hardening,
+- `tests/revamp-regression.test.js`: 10 targeted regression tests for null input hardening,
   canonical JSON boundaries, CSV injection whitespace, trailing digest bytes, and complete
   schema replay verification.
 
