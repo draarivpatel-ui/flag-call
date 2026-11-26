@@ -132,6 +132,17 @@ test('copy hygiene and mobile affordances', () => {
   ok(!/https?:\/\//.test(html.replace(/<script[\s\S]*?<\/script>/g, '')), 'the page makes no network requests');
 });
 
+test('reduced motion, print, and compact mobile regressions', () => {
+  ok(css.includes('transition-duration: 0.01ms !important'), 'reduced motion transitions win over class-level motion');
+  ok(css.includes('animation-duration: 0.01ms !important'), 'reduced motion animations win over class-level motion');
+  const printStart = css.indexOf('@media print');
+  const print = printStart === -1 ? '' : css.slice(printStart);
+  ok(print.includes('background: #ffffff !important'), 'print output resets the dark game surface to paper');
+  ok(print.includes('button,') && print.includes('textarea {') && print.includes('.run-bar'), 'print output removes interactive controls and the sticky run bar');
+  ok(css.includes('@media (max-width: 520px)') && css.includes('grid-template-columns: auto auto 1fr'),
+    'the narrow run bar uses a balanced two-row grid instead of an orphaned wrap');
+});
+
 test('self audit: accessibility assertion count is exact', () => {
-  assert.strictEqual(count, 34, 'the accessibility suite must hold exactly 34 content assertions');
+  assert.strictEqual(count, 39, 'the accessibility suite must hold exactly 39 content assertions');
 });
