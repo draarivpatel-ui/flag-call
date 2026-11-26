@@ -93,7 +93,7 @@ That runs 680 node:test tests in well under a second:
   and copy hygiene (14 tests).
 - `tests/accessibility.test.js`: 34 static accessibility checkpoints over the markup and CSS
   (landmarks, labels, heading order, focus styles, computed contrast on design tokens, copy
-  hygiene, mobile affordances) (7 tests).
+  hygiene, mobile affordances) (8 tests).
 - `tests/bot-sweep.test.js`: the 592,704 combination bot sweep described above (1 test).
 - `tests/crypto.test.js`: 1,728 content assertions covering the SHA-256 module against FIPS
   180-4 known answers and edge vectors, UTF-8 encoding including lone surrogates, CSV escaping

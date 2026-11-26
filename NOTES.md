@@ -41,13 +41,13 @@ this build; the repo goes public tomorrow per the pipeline plan.
 
 ## Exact real test counts
 
-`npm test` runs 679 tests, 679 pass, 0 fail, about 0.6 s on this machine. Well inside the 60
+`npm test` runs 680 tests, 680 pass, 0 fail, about 0.6 s on this machine. Well inside the 60
 second budget. No network access anywhere.
 
 - `tests/engine.test.js`: 178 content assertions plus 1 self audit assertion that locks the count
   at exactly 178. 14 tests total.
 - `tests/accessibility.test.js`: 34 content assertions plus 1 self audit assertion that locks the
-  count at exactly 34. 7 tests total. Four of the checkpoints compute real WCAG contrast ratios
+  count at exactly 34. 8 tests total. Four of the checkpoints compute real WCAG contrast ratios
   from the parsed CSS tokens and require 4.5 to 1 or better.
 - `tests/bot-sweep.test.js`: 1 test with 12 assertions over the sweep run.
 - `tests/crypto.test.js`: 1,728 content assertions plus 1 self audit assertion that locks the
