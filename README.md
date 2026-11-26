@@ -86,14 +86,14 @@ Requires Node 18 or newer. No installs, no network.
 npm test
 ```
 
-That runs 681 node:test tests in well under a second:
+That runs 682 node:test tests in well under a second:
 
 - `tests/engine.test.js`: 178 content assertions covering conversion, wet bulb math, the globe
   model, WBGT composition, tier mapping, presets, schedule evaluation, scoring, plan generators,
   and copy hygiene (14 tests).
-- `tests/accessibility.test.js`: 34 static accessibility checkpoints over the markup and CSS
+- `tests/accessibility.test.js`: 43 static accessibility checkpoints over the markup and CSS
   (landmarks, labels, heading order, focus styles, computed contrast on design tokens, copy
-  hygiene, mobile affordances) (8 tests).
+  hygiene, mobile affordances) (9 tests).
 - `tests/bot-sweep.test.js`: the 592,704 combination bot sweep described above (1 test).
 - `tests/crypto.test.js`: 1,728 content assertions covering the SHA-256 module against FIPS
   180-4 known answers and edge vectors, UTF-8 encoding including lone surrogates, CSV escaping
@@ -143,7 +143,7 @@ js/sha256.js                standalone FIPS 180-4 SHA-256 (Node and browser)
 js/lab.js                   scenario and policy comparator, metrics, exporters, self tests
 js/lab-ui.js                Audit Lab DOM adapter: charts, table, exports, bookmarking
 tests/engine.test.js        178 engine assertions
-tests/accessibility.test.js 34 accessibility checkpoints
+tests/accessibility.test.js 43 accessibility checkpoints
 tests/bot-sweep.test.js     the 592,704 combination bot sweep
 tests/crypto.test.js        1,728 crypto, encoding, CSV, digest, and bookmark assertions
 tests/lab.test.js           1,463 comparator, export, verify, and self test assertions

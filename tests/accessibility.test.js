@@ -143,6 +143,20 @@ test('reduced motion, print, and compact mobile regressions', () => {
     'the narrow run bar uses a balanced two-row grid instead of an orphaned wrap');
 });
 
+test('mobile control boundaries and walkthrough touch targets regressions', () => {
+  const line = token('line');
+  const panel = token('panel');
+  const panel2 = token('panel-2');
+  ok(line && panel && panel2 && contrast(line, panel) >= 3 && contrast(line, panel2) >= 3,
+    'control borders hold at least 3:1 against both dark panels');
+  ok(/@media \(max-width: 520px\)[\s\S]*\.coach-dots button \{[\s\S]*width: 44px;[\s\S]*height: 44px;/.test(css),
+    'compact walkthrough dots keep a real 44 pixel touch target');
+  ok(/\.coach-dots button::before \{[\s\S]*inset: 15px;/.test(css),
+    'the drawn walkthrough dot stays small inside the larger target');
+  ok(css.includes('.judge-warn { border-color: var(--warn); }') && css.includes('.judge-safe { border-color: var(--good); }'),
+    'judge shortcut borders keep solid 3:1-visible edges instead of translucent washes');
+});
+
 test('self audit: accessibility assertion count is exact', () => {
-  assert.strictEqual(count, 39, 'the accessibility suite must hold exactly 39 content assertions');
+  assert.strictEqual(count, 43, 'the accessibility suite must hold exactly 43 content assertions');
 });
