@@ -86,7 +86,7 @@ Requires Node 18 or newer. No installs, no network.
 npm test
 ```
 
-That runs 679 node:test tests in well under a second:
+That runs 680 node:test tests in well under a second:
 
 - `tests/engine.test.js`: 178 content assertions covering conversion, wet bulb math, the globe
   model, WBGT composition, tier mapping, presets, schedule evaluation, scoring, plan generators,
