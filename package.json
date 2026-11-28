@@ -4,7 +4,7 @@
   "private": true,
   "description": "Flag Call: a UIL wet bulb globe temperature heat safety decision game. Static site, zero dependencies.",
   "scripts": {
-    "test": "node --test tests/",
+    "test": "node --test",
     "test:sweep": "node --test tests/bot-sweep.test.js",
     "test:engine": "node --test tests/engine.test.js",
     "test:a11y": "node --test tests/accessibility.test.js",
