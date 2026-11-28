@@ -69,6 +69,7 @@ const documentStub = {
     if (!registry[id]) { registry[id] = makeEl('div'); }
     return registry[id];
   },
+  body: makeEl('body'),
   createElement: function (tag) { return makeEl(tag); },
   querySelector: function () { return null; },
   querySelectorAll: function () { return []; }
@@ -173,6 +174,7 @@ console.log('dom smoke: ' + checks + ' checks passed across presets, sliders, ca
       if (!registry2[id]) { registry2[id] = makeEl('div'); }
       return registry2[id];
     },
+    body: makeEl('body'),
     createElement: function (tag) { return makeEl(tag); },
     querySelector: function () { return null; },
     querySelectorAll: function () { return []; }
